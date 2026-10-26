@@ -573,7 +573,9 @@ function catColor(name,idx){if(idx!==undefined)return palette[idx%palette.length
 function catEmoji(name){const c=[...state.categories.expense,...state.categories.income].find(x=>x.name===name);return c?c.emoji:'💸';}
 function fmtDate(s){const d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
 
-function toggleTheme(){const r=document.documentElement,c=r.getAttribute('data-theme');if(c==='dark'){r.setAttribute('data-theme','light');document.getElementById('theme-btn').innerHTML='<span class="icon">🌙</span> Dark Mode';}else{r.setAttribute('data-theme','dark');document.getElementById('theme-btn').innerHTML='<span class="icon">☀️</span> Light Mode';}}
+function isDarkNow(){const t=document.documentElement.getAttribute('data-theme');return t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme:dark)').matches);}
+function updateThemeBtn(){document.getElementById('theme-btn').innerHTML=isDarkNow()?'<span class="icon">☀️</span> Light Mode':'<span class="icon">🌙</span> Dark Mode';}
+function toggleTheme(){const r=document.documentElement;if(isDarkNow()){r.setAttribute('data-theme','light');}else{r.setAttribute('data-theme','dark');}try{localStorage.setItem('cf_theme',r.getAttribute('data-theme'));}catch(e){}updateThemeBtn();}
 
 function renderAll(){renderTiles();renderBarChart();renderDonut();renderRecentTxns();renderAllTxns();renderBudget();renderAnalytics();renderCategories();}
 
@@ -664,10 +666,14 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 // Clear any stale localStorage from older versions
 ['cashflow_v1','cashflow_v2'].forEach(k => { try{localStorage.removeItem(k);}catch(e){} });
 
+// Restore saved theme
+try{const t=localStorage.getItem('cf_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+
 // Close all modals on load
 document.querySelectorAll('.modal-overlay').forEach(o => o.hidden = true);
 
 updateMonthDisplay();
+updateThemeBtn();
 setType('expense');
 renderAll();
 </script>
