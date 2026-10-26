@@ -647,7 +647,7 @@ function renderAnalytics(){
 function renderCategories(){['expense','income'].forEach(type=>{document.getElementById(`cat-${type}-grid`).innerHTML=state.categories[type].map(c=>`<div class="cat-card"><div class="cat-emoji">${c.emoji}</div><div>${c.name}</div><button class="icon-btn danger cat-delete" onclick="deleteCategory('${type}','${c.name}')">✕</button></div>`).join('');});}
 
 function openAddModal(){document.getElementById('txn-name').value='';document.getElementById('txn-amount').value='';document.getElementById('txn-note').value='';document.getElementById('txn-date').value=new Date().toISOString().split('T')[0];setType('expense');document.getElementById('add-modal').hidden=false;}
-function closeModal(id){document.getElementById(id).hidden=true;}
+function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
 function setType(type){currentType=type;document.getElementById('btn-income').className=type==='income'?'active-income':'';document.getElementById('btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('txn-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
 function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim();if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note});saveState();closeModal('add-modal');renderAll();toast('Saved!');}
 function deleteTxn(id){state.transactions=state.transactions.filter(t=>t.id!==id);saveState();renderAll();toast('Deleted');}
@@ -658,7 +658,7 @@ function saveCategory(){const emoji=document.getElementById('cat-emoji').value.t
 function deleteCategory(type,name){state.categories[type]=state.categories[type].filter(c=>c.name!==name);saveState();renderCategories();toast('Removed');}
 
 function toast(msg){const w=document.getElementById('toasts'),el=document.createElement('div');el.className='toast';el.textContent=msg;w.appendChild(el);setTimeout(()=>el.remove(),2800);}
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.hidden=true;}));
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}}));
 
 // Close all modals on load (guard against stale DOM state)
 document.querySelectorAll('.modal-overlay').forEach(o => o.hidden = true);
