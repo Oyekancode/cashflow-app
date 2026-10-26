@@ -1,0 +1,34 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# Capacitor
+ios/App/App/public/
+android/app/src/main/assets/public/
+android/app/src/main/res/drawable*/
+android/app/src/main/res/mipmap*/
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+local.properties
+.gradle/
+android/build/
+android/.idea/
+
+# iOS
+*.xcworkspace/xcuserdata/
+ios/App/Pods/
+ios/App/*.xcworkspace
+DerivedData/
+
+# Secrets — NEVER commit these
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+.env
+.env.*

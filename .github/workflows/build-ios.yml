@@ -1,0 +1,129 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14          # Apple Silicon runner (Xcode 15+)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
+          pod install
+
+      # ── Import signing certificate & provisioning profile ────────────────
+      # Store these in GitHub Actions secrets:
+      #   IOS_CERTIFICATE_BASE64      — base64 of your .p12 export
+      #   IOS_CERTIFICATE_PASSWORD    — password set when exporting .p12
+      #   IOS_PROVISIONING_PROFILE_BASE64 — base64 of your .mobileprovision
+      #   KEYCHAIN_PASSWORD           — any random string, used for the temp keychain
+      - name: Import signing assets
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Create a temporary keychain
+          security create-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" build.keychain
+          security set-keychain-settings -t 3600 -l build.keychain
+
+          # Import certificate
+          echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "${{ secrets.KEYCHAIN_PASSWORD }}" build.keychain
+
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/cashflow.mobileprovision
+
+      # ── Debug build (no signing, simulator) ─────────────────────────────
+      - name: Build (simulator / unsigned)
+        if: github.ref != 'refs/heads/main'
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # ── Release IPA (main branch only) ───────────────────────────────────
+      - name: Archive (release)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $RUNNER_TEMP/CashFlow.xcarchive \
+            archive
+
+      - name: Export IPA
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cat > /tmp/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>YOUR_TEAM_ID</string>
+            <key>uploadSymbols</key><true/>
+            <key>compileBitcode</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/CashFlow.xcarchive \
+            -exportOptionsPlist /tmp/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/ipa
+
+      - name: Upload IPA artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cashflow-ios-${{ github.sha }}
+          path: ${{ runner.temp }}/ipa/CashFlow.ipa
+          retention-days: 30
+
+      # ── Optional: upload to TestFlight ───────────────────────────────────
+      # Uncomment once you have App Store Connect API key in secrets:
+      #   APP_STORE_CONNECT_API_KEY_ID
+      #   APP_STORE_CONNECT_API_ISSUER_ID
+      #   APP_STORE_CONNECT_API_KEY_BASE64
+      # - name: Upload to TestFlight
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     echo "${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}" | base64 --decode > /tmp/api_key.p8
+      #     xcrun altool --upload-app \
+      #       --type ios \
+      #       --file "${{ runner.temp }}/ipa/CashFlow.ipa" \
+      #       --apiKey "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+      #       --apiIssuer "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
