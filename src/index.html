@@ -660,7 +660,10 @@ function deleteCategory(type,name){state.categories[type]=state.categories[type]
 function toast(msg){const w=document.getElementById('toasts'),el=document.createElement('div');el.className='toast';el.textContent=msg;w.appendChild(el);setTimeout(()=>el.remove(),2800);}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}}));
 
-// Close all modals on load (guard against stale DOM state)
+// Clear any stale localStorage from older versions
+['cashflow_v1','cashflow_v2'].forEach(k => { try{localStorage.removeItem(k);}catch(e){} });
+
+// Close all modals on load
 document.querySelectorAll('.modal-overlay').forEach(o => o.hidden = true);
 
 updateMonthDisplay();
