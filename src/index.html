@@ -660,6 +660,9 @@ function deleteCategory(type,name){state.categories[type]=state.categories[type]
 function toast(msg){const w=document.getElementById('toasts'),el=document.createElement('div');el.className='toast';el.textContent=msg;w.appendChild(el);setTimeout(()=>el.remove(),2800);}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.hidden=true;}));
 
+// Close all modals on load (guard against stale DOM state)
+document.querySelectorAll('.modal-overlay').forEach(o => o.hidden = true);
+
 updateMonthDisplay();
 setType('expense');
 renderAll();
