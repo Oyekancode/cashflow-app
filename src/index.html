@@ -222,11 +222,14 @@ select.form-control { cursor: pointer; }
 .spark-fill { height: 100%; border-radius: 99px; }
 .spark-val { width: 70px; text-align: right; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-.cat-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); font-size: 12px; font-weight: 600; color: var(--fg-2); position: relative; }
-.cat-card .cat-emoji { font-size: 22px; }
-.cat-card .cat-delete { position: absolute; top: 6px; right: 6px; opacity: 0; }
-.cat-card:hover .cat-delete { opacity: 1; }
+.cat-list { display: flex; flex-direction: column; gap: 2px; }
+.cat-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-sm); transition: background .12s; }
+.cat-row:hover { background: var(--surface-2); }
+.cat-row-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.cat-row-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--fg); }
+.cat-row-delete { opacity: 0; transition: opacity .15s; }
+.cat-row:hover .cat-row-delete { opacity: 1; }
+@media (max-width: 700px) { .cat-row-delete { opacity: 1; } }
 
 @media (max-width: 700px) {
   .sidebar { display: none; }
@@ -647,7 +650,10 @@ function renderAnalytics(){
   document.getElementById('top-categories').innerHTML=s.length?s.map(([name,val],i)=>`<div class="budget-item"><div class="budget-header"><div class="budget-cat">${catEmoji(name)} ${name}</div><div class="budget-amounts">${fmt(val)} total</div></div><div class="progress-track"><div class="progress-fill" style="width:${val/mx*100}%;background:${catColor(name,i)}"></div></div></div>`).join(''):'<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">No expense data yet</div></div>';
 }
 
-function renderCategories(){['expense','income'].forEach(type=>{document.getElementById(`cat-${type}-grid`).innerHTML=state.categories[type].map(c=>`<div class="cat-card"><div class="cat-emoji">${c.emoji}</div><div>${c.name}</div><button class="icon-btn danger cat-delete" onclick="deleteCategory('${type}','${c.name}')">✕</button></div>`).join('');});}
+const catBgColors = ['#EEF3FD','#EAF7F2','#FDF0F0','#FDF4EB','#F3EFFE','#E8F6FD','#FDE8F4','#E8FDF5','#FEF9E8','#EEEFFE'];
+const catBgColorsDark = ['#0F1A35','#0F2820','#2A1313','#2A1A08','#1E1235','#082030','#2A0820','#082A1A','#2A2008','#12122A'];
+function catBg(idx){const isDark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches);return(isDark?catBgColorsDark:catBgColors)[idx%10];}
+function renderCategories(){['expense','income'].forEach(type=>{const el=document.getElementById(`cat-${type}-grid`);el.className='cat-list';el.innerHTML=state.categories[type].map((c,i)=>`<div class="cat-row"><div class="cat-row-icon" style="background:${catBg(i)}">${c.emoji}</div><div class="cat-row-name">${c.name}</div><button class="icon-btn danger cat-row-delete" onclick="deleteCategory('${type}','${c.name}')" title="Remove">✕</button></div>`).join('');});}
 
 function openAddModal(){document.getElementById('txn-name').value='';document.getElementById('txn-amount').value='';document.getElementById('txn-note').value='';document.getElementById('txn-date').value=new Date().toISOString().split('T')[0];setType('expense');document.getElementById('add-modal').hidden=false;}
 function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
