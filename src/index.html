@@ -127,6 +127,8 @@ body {
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px max(16px, env(safe-area-inset-right, 0px)) 14px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 5; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
 .topbar-title { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.topbar-logo { display: none; align-items: center; gap: 7px; cursor: pointer; }
+.topbar-logo-text { font-size: 17px; font-weight: 800; letter-spacing: -.4px; }
 .demo-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#2ABF8722; border-bottom:1px solid #2ABF8755; padding:10px max(16px,env(safe-area-inset-left,0px)); font-size:13px; color:var(--text); }
 .demo-fresh-btn { background:#2ABF87; color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
@@ -153,6 +155,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tile-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-3); margin-bottom: 6px; }
 .tile-value { font-size: 26px; font-weight: 700; letter-spacing: -.8px; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .tile-sub { font-size: 12px; color: var(--fg-3); margin-top: 4px; }
+.tile-link { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.tile-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.tile-link:active { transform: translateY(0); }
 .tile-income .tile-value { color: var(--income); }
 .tile-expense .tile-value { color: var(--expense); }
 .tile-net .tile-value { color: var(--accent); }
@@ -258,6 +263,8 @@ select.form-control { cursor: pointer; }
 
 @media (max-width: 700px) {
   .sidebar { display: none; }
+  .topbar-logo { display: flex; }
+  .topbar-title { display: none; }
   .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 10; }
   .bnav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; cursor: pointer; border: none; background: none; color: var(--fg-3); font-family: var(--font); font-size: 10px; font-weight: 600; transition: color .15s; }
   .bnav-item .icon { font-size: 20px; }
@@ -311,6 +318,15 @@ select.form-control { cursor: pointer; }
 
   <div class="main">
     <div class="topbar">
+      <div class="topbar-logo" onclick="showPage('dashboard',document.querySelector('.bnav-item'))">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="28" height="28">
+          <rect width="32" height="32" rx="7" fill="#0D1B33"/>
+          <path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="18,23 20,19 22,22 25,15 27,18 29,8" stroke="#2ABF87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="29" cy="8" r="2.5" fill="#2ABF87"/>
+        </svg>
+        <span class="topbar-logo-text">Moni</span>
+      </div>
       <div class="topbar-title" id="page-title">Dashboard</div>
       <div class="topbar-actions">
         <div class="month-nav">
@@ -672,6 +688,16 @@ function seedSampleData() {
 function saveState() { try{localStorage.setItem('moni_v1',JSON.stringify(state));}catch(e){} }
 function loadState() { try{const d=localStorage.getItem('moni_v1')||localStorage.getItem('cashflow_v3');return d?JSON.parse(d):null;}catch(e){return null;} }
 function updateDemoBanner() { const b=document.getElementById('demo-banner'); if(b) b.hidden=!state.isDemo; }
+function goToFilter(filter){
+  txnFilter=filter;
+  const txnNavSidebar=document.querySelectorAll('.nav-item')[1];
+  const txnNavBottom=document.querySelectorAll('.bnav-item')[1];
+  showPage('transactions', txnNavSidebar||txnNavBottom);
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  const chip=[...document.querySelectorAll('.chip')].find(c=>c.textContent.trim().toLowerCase().startsWith(filter==='all'?'all':filter==='income'?'income':'exp'));
+  if(chip)chip.classList.add('active');
+  renderAllTxns();
+}
 function startFresh() { state.transactions=[]; state.budgets={}; state.isDemo=false; saveState(); updateDemoBanner(); renderAll(); }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
@@ -780,10 +806,10 @@ function renderTiles(){
   const prevExp=totalExpense(txnsForMonth(pm,py));
   const chg=prevExp>0?(((exp-prevExp)/prevExp)*100).toFixed(0):null;
   document.getElementById('tiles-summary').innerHTML=`
-    <div class="tile tile-income"><div class="tile-label">Income</div><div class="tile-value">${fmt(inc)}</div><div class="tile-sub">${txns.filter(t=>t.type==='income').length} transactions</div></div>
-    <div class="tile tile-expense"><div class="tile-label">Expenses</div><div class="tile-value">${fmt(exp)}</div><div class="tile-sub">${chg!==null?(chg>0?'▲':'▼')+Math.abs(chg)+'% vs last month':txns.filter(t=>t.type==='expense').length+' transactions'}</div></div>
-    <div class="tile tile-net"><div class="tile-label">Net Cash Flow</div><div class="tile-value" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div><div class="tile-sub">${net>=0?'Surplus':'Deficit'} this month</div></div>
-    <div class="tile"><div class="tile-label">Savings Rate</div><div class="tile-value" style="color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'}">${rate}%</div><div class="tile-sub">${rate>=20?'On track':'Below 20% goal'}</div></div>`;
+    <div class="tile tile-income tile-link" onclick="goToFilter('income')"><div class="tile-label">Income</div><div class="tile-value">${fmt(inc)}</div><div class="tile-sub">${txns.filter(t=>t.type==='income').length} transactions ›</div></div>
+    <div class="tile tile-expense tile-link" onclick="goToFilter('expense')"><div class="tile-label">Expenses</div><div class="tile-value">${fmt(exp)}</div><div class="tile-sub">${chg!==null?(chg>0?'▲':'▼')+Math.abs(chg)+'% vs last month ›':txns.filter(t=>t.type==='expense').length+' transactions ›'}</div></div>
+    <div class="tile tile-net tile-link" onclick="goToFilter('all')"><div class="tile-label">Net Cash Flow</div><div class="tile-value" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div><div class="tile-sub">${net>=0?'Surplus':'Deficit'} · View all ›</div></div>
+    <div class="tile tile-link" onclick="goToFilter('all')"><div class="tile-label">Savings Rate</div><div class="tile-value" style="color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'}">${rate}%</div><div class="tile-sub">${rate>=20?'On track':'Below 20% goal'} ›</div></div>`;
 }
 
 function renderBarChart(){
