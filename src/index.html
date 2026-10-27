@@ -127,6 +127,8 @@ body {
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px max(16px, env(safe-area-inset-right, 0px)) 14px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 5; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
 .topbar-title { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.demo-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#2ABF8722; border-bottom:1px solid #2ABF8755; padding:10px max(16px,env(safe-area-inset-left,0px)); font-size:13px; color:var(--text); }
+.demo-fresh-btn { background:#2ABF87; color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: filter .15s; }
@@ -316,6 +318,11 @@ select.form-control { cursor: pointer; }
         </div>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add</button>
       </div>
+    </div>
+
+    <div id="demo-banner" class="demo-banner" hidden>
+      <span>👀 You're viewing sample data</span>
+      <button class="demo-fresh-btn" onclick="startFresh()">Start fresh →</button>
     </div>
 
     <div class="content">
@@ -656,11 +663,14 @@ function seedSampleData() {
     ]);
   }
   state.budgets = {Rent:1500,Groceries:400,Dining:200,Transport:100,Utilities:120,Entertainment:100};
+  state.isDemo = true;
   saveState();
 }
 
 function saveState() { try{localStorage.setItem('moni_v1',JSON.stringify(state));}catch(e){} }
 function loadState() { try{const d=localStorage.getItem('moni_v1')||localStorage.getItem('cashflow_v3');return d?JSON.parse(d):null;}catch(e){return null;} }
+function updateDemoBanner() { const b=document.getElementById('demo-banner'); if(b) b.hidden=!state.isDemo; }
+function startFresh() { state.transactions=[]; state.budgets={}; state.isDemo=false; saveState(); updateDemoBanner(); renderAll(); }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
 const pageTitles={dashboard:'Dashboard',transactions:'Transactions',budget:'Budget Goals',analytics:'Analytics',categories:'Categories'};
@@ -874,6 +884,7 @@ updateMonthDisplay();
 updateThemeBtn();
 setType('expense');
 renderAll();
+updateDemoBanner();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
