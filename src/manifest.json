@@ -1,0 +1,14 @@
+{
+  "name": "Moni",
+  "short_name": "Moni",
+  "description": "Your personal money companion",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1B33",
+  "theme_color": "#0D1B33",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["finance", "productivity"]
+}
