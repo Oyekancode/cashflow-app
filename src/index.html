@@ -290,6 +290,31 @@ select.form-control { cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
+/* ─── AI Insight Card ───────────────────────────────────────────────── */
+.insight-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: linear-gradient(135deg, rgba(42,191,135,.1) 0%, rgba(59,111,232,.08) 100%);
+  border: 1px solid rgba(42,191,135,.25);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px;
+  animation: fadeUp .4s ease;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } }
+.insight-avatar {
+  width: 32px; height: 32px; border-radius: 9px; background: #0D1B33;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+}
+.insight-body { flex: 1; min-width: 0; }
+.insight-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #2ABF87; margin-bottom: 4px; }
+.insight-text { font-size: 13.5px; line-height: 1.55; color: var(--fg); }
+.insight-skeleton {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px;
+}
+.insight-skeleton-lines { flex: 1; display: flex; flex-direction: column; gap: 7px; padding-top: 2px; }
+.skeleton-line { height: 11px; border-radius: 99px; background: var(--surface-2); animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
 /* ─── AI Chat ───────────────────────────────────────────────────────── */
 .chat-fab {
   position: fixed; bottom: 28px; right: 20px; z-index: 300;
@@ -429,6 +454,7 @@ select.form-control { cursor: pointer; }
 
     <div class="content">
       <div class="page active" id="page-dashboard">
+        <div id="insight-wrap"></div>
         <div class="tiles" id="tiles-summary"></div>
         <div class="grid-2">
           <div class="card">
@@ -834,6 +860,7 @@ function showPage(id,el) {
   document.querySelectorAll('.nav-item,.bnav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
   renderAll();
+  if(id==='dashboard') loadInsight();
 }
 
 function changeMonth(dir) {
@@ -847,6 +874,8 @@ function changeMonth(dir) {
     document.getElementById('chat-suggestions').style.display = '';
     initChatGreeting();
   }
+  const activePage = document.querySelector('.page.active');
+  if (activePage && activePage.id === 'page-dashboard') loadInsight();
 }
 function updateMonthDisplay() {
   const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1093,9 +1122,56 @@ updateThemeBtn();
 setType('expense');
 renderAll();
 updateDemoBanner();
+loadInsight();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── AI Insight Card ──────────────────────────────────────────────────
+let insightCache = {};
+
+function insightLogoSVG() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="18" height="18"><path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="18,23 20,19 22,22 25,15 27,18 29,8" stroke="#2ABF87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="29" cy="8" r="2.5" fill="#2ABF87"/></svg>`;
+}
+
+async function loadInsight() {
+  const wrap = document.getElementById('insight-wrap');
+  if (!wrap) return;
+
+  const key = `${state.currentMonth}-${state.currentYear}`;
+  if (insightCache[key]) {
+    renderInsight(insightCache[key]);
+    return;
+  }
+
+  wrap.innerHTML = `<div class="insight-skeleton"><div class="insight-avatar">${insightLogoSVG()}</div><div class="insight-skeleton-lines"><div class="skeleton-line" style="width:55%"></div><div class="skeleton-line" style="width:88%"></div><div class="skeleton-line" style="width:70%"></div></div></div>`;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'Give me one short, specific financial insight or observation about this month. Be direct and concrete — mention actual numbers. No greeting, no question, just the insight. Under 40 words.' }],
+        context: buildContext(),
+      }),
+    });
+    const data = await res.json();
+    if (data.reply) {
+      insightCache[key] = data.reply;
+      renderInsight(data.reply);
+    } else {
+      wrap.innerHTML = '';
+    }
+  } catch (e) {
+    wrap.innerHTML = '';
+  }
+}
+
+function renderInsight(text) {
+  const wrap = document.getElementById('insight-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="insight-card"><div class="insight-avatar">${insightLogoSVG()}</div><div class="insight-body"><div class="insight-label">Moni AI</div><div class="insight-text">${escapeHtml(text)}</div></div></div>`;
 }
 
 // ── AI Chat ──────────────────────────────────────────────────────────
