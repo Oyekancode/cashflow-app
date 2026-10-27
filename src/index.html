@@ -551,7 +551,10 @@ select.form-control { cursor: pointer; }
       <button class="nav-item" onclick="showPage('categories',this)"><span class="icon">🏷️</span> Categories</button>
     </div>
     <div class="sidebar-footer">
-      <div style="padding:6px 12px 4px;"><select id="currency-select" onchange="changeCurrency(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--fg);font-family:var(--font);font-size:12.5px;cursor:pointer;outline:none;"></select></div>
+      <div style="padding:6px 12px 4px;">
+        <div style="font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Currency</div>
+        <select id="currency-select" onchange="changeCurrency(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--fg);font-family:var(--font);font-size:12.5px;cursor:pointer;outline:none;"></select>
+      </div>
       <button class="nav-item" onclick="toggleTheme()" id="theme-btn"><span class="icon">🌙</span> Dark Mode</button>
       <button class="nav-item" onclick="startFresh()" style="color:var(--fg-3);font-size:12.5px;"><span class="icon">🔄</span> Reset App</button>
     </div>
@@ -577,6 +580,7 @@ select.form-control { cursor: pointer; }
         </div>
         <button class="icon-btn theme-topbar-btn" id="theme-topbar-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
         <button class="icon-btn theme-topbar-btn" onclick="startFresh()" title="Reset app" style="font-size:15px;">🔄</button>
+        <button class="icon-btn theme-topbar-btn" onclick="toggleCurrencyPicker()" title="Change currency" id="currency-topbar-btn" style="font-size:13px;font-weight:700;min-width:36px;" ></button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add</button>
       </div>
     </div>
@@ -1967,15 +1971,36 @@ if ('serviceWorker' in navigator) {
 // ── Onboarding ───────────────────────────────────────────────────────
 function initCurrencySelect() {
   const sel = document.getElementById('currency-select');
-  if (!sel) return;
-  sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code===(state.currency||'USD')?'selected':''}>${c.symbol} ${c.label}</option>`).join('');
+  if (sel) sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code===(state.currency||'USD')?'selected':''}>${c.symbol} ${c.label}</option>`).join('');
+  const btn = document.getElementById('currency-topbar-btn');
+  if (btn) btn.textContent = getCurrency().code;
 }
 function changeCurrency(code) {
   state.currency = code;
   saveState();
   insightCache = {}; forecastAiCache = {};
+  initCurrencySelect();
   renderAll();
   toast('Currency updated');
+}
+function toggleCurrencyPicker() {
+  // scroll sidebar into view on mobile, or show a quick picker sheet
+  const sel = document.getElementById('currency-select');
+  if (!sel) return;
+  // on mobile open a minimal bottom sheet with the select
+  const existing = document.getElementById('currency-sheet');
+  if (existing) { existing.remove(); return; }
+  const sheet = document.createElement('div');
+  sheet.id = 'currency-sheet';
+  sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;z-index:400;box-shadow:0 -4px 30px rgba(0,0,0,.18);';
+  sheet.innerHTML = `<div style="font-size:15px;font-weight:700;margin-bottom:14px;">Choose Currency</div>
+    <select onchange="changeCurrency(this.value);document.getElementById('currency-sheet').remove();" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--fg);font-family:var(--font);font-size:14px;">
+      ${CURRENCIES.map(c=>`<option value="${c.code}" ${c.code===(state.currency||'USD')?'selected':''}>${c.symbol} ${c.label}</option>`).join('')}
+    </select>
+    <button onclick="document.getElementById('currency-sheet').remove()" style="margin-top:12px;width:100%;padding:10px;border:none;background:none;color:var(--fg-3);font-size:14px;cursor:pointer;">Cancel</button>`;
+  document.body.appendChild(sheet);
+  // close on outside tap
+  setTimeout(() => document.addEventListener('click', function h(e){if(!sheet.contains(e.target)&&e.target.id!=='currency-topbar-btn'){sheet.remove();document.removeEventListener('click',h);}},), 100);
 }
 function checkOnboarding() {
   const done = localStorage.getItem('moni_onboarded');
@@ -2049,12 +2074,13 @@ function onboardFinish() {
 }
 
 function onboardSkip() {
-  state.isDemo = false;
+  seedSampleData(); // loads demo data + sets isDemo=true
   saveState();
   localStorage.setItem('moni_onboarded', '1');
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
+  loadInsight();
 }
 
 // ── AI Insight Card ──────────────────────────────────────────────────
