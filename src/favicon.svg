@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
   <rect width="32" height="32" rx="7" fill="#0D1B33"/>
-  <!-- M letterform -->
   <path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Mint green upward flow line -->
-  <polyline points="19,24 22,17 25,20.5 29,11" stroke="#2ABF87" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <!-- Arrow head -->
-  <polyline points="26,10 29,11 28,14" stroke="#2ABF87" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M18 24 Q22 19 27 11" stroke="#2ABF87" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <circle cx="27" cy="11" r="2.5" fill="#2ABF87"/>
 </svg>

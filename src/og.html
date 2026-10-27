@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: #0D1B33;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wrap {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; text-align: center;
+  }
+  .logo-row {
+    display: flex; align-items: center; gap: 20px;
+  }
+  .logo-box {
+    width: 96px; height: 96px; background: #162236;
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px rgba(42,191,135,.25), 0 20px 60px rgba(0,0,0,.4);
+  }
+  .app-name {
+    font-size: 72px; font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -3px;
+    line-height: 1;
+  }
+  .tagline {
+    font-size: 28px; font-weight: 400;
+    color: rgba(255,255,255,.55);
+    letter-spacing: -.3px;
+  }
+  .tagline strong { color: #2ABF87; font-weight: 600; }
+  .domain {
+    font-size: 18px; color: rgba(255,255,255,.25);
+    letter-spacing: .5px; margin-top: 8px;
+  }
+  /* background glow */
+  .glow {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(42,191,135,.12) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+  <div class="logo-row">
+    <div class="logo-box">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="64" height="64">
+        <path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18 24 Q22 19 27 11" stroke="#2ABF87" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <circle cx="27" cy="11" r="2.5" fill="#2ABF87"/>
+      </svg>
+    </div>
+    <span class="app-name">Moni</span>
+  </div>
+  <div class="tagline"><strong>Talk to Moni.</strong> Know your money.</div>
+  <div class="domain">talktomoni.com</div>
+</div>
+</body>
+</html>
