@@ -290,6 +290,63 @@ select.form-control { cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
+/* ─── Onboarding ────────────────────────────────────────────────────── */
+.onboard-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.onboard-card {
+  background: var(--surface); border-radius: 20px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  overflow: hidden; animation: modalIn .25s ease;
+}
+.onboard-top {
+  background: linear-gradient(135deg, #0D1B33 0%, #162a4a 100%);
+  padding: 32px 28px 28px; text-align: center;
+}
+.onboard-logo {
+  width: 60px; height: 60px; background: rgba(255,255,255,.08);
+  border-radius: 16px; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.onboard-app-name { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -.8px; margin-bottom: 6px; }
+.onboard-tagline { font-size: 14px; color: rgba(255,255,255,.55); line-height: 1.5; }
+.onboard-tagline strong { color: #2ABF87; font-weight: 600; }
+.onboard-body { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+.onboard-step-title { font-size: 18px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 4px; }
+.onboard-step-sub { font-size: 13px; color: var(--fg-2); line-height: 1.5; margin-bottom: 4px; }
+.onboard-big-input {
+  width: 100%; padding: 14px 16px; border: 2px solid var(--border);
+  border-radius: var(--radius); background: var(--surface-2); color: var(--fg);
+  font-family: var(--font); font-size: 22px; font-weight: 700;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  text-align: center; letter-spacing: -.5px;
+}
+.onboard-big-input:focus { border-color: #2ABF87; box-shadow: 0 0 0 4px rgba(42,191,135,.15); }
+.onboard-big-input::placeholder { font-size: 18px; font-weight: 400; color: var(--fg-3); }
+.onboard-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.onboard-pill {
+  padding: 7px 16px; border-radius: 99px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--surface-2); color: var(--fg-2);
+  cursor: pointer; transition: all .15s;
+}
+.onboard-pill:hover, .onboard-pill.active { border-color: #2ABF87; color: #2ABF87; background: rgba(42,191,135,.08); }
+.onboard-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.onboard-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s, width .2s; }
+.onboard-dot.active { background: #2ABF87; width: 20px; border-radius: 99px; }
+.onboard-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius); border: none;
+  background: #2ABF87; color: #fff; font-family: var(--font);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: filter .15s, transform .1s; letter-spacing: -.2px;
+}
+.onboard-btn:hover { filter: brightness(1.08); }
+.onboard-btn:active { transform: scale(.98); }
+.onboard-skip { text-align: center; font-size: 12px; color: var(--fg-3); cursor: pointer; }
+.onboard-skip:hover { color: var(--fg-2); }
+
 /* ─── AI Insight Card ───────────────────────────────────────────────── */
 .insight-card {
   display: flex; align-items: flex-start; gap: 12px;
@@ -729,6 +786,83 @@ select.form-control { cursor: pointer; }
   </div>
 </div>
 
+<!-- ONBOARDING -->
+<div class="onboard-overlay" id="onboard-overlay" hidden>
+  <div class="onboard-card">
+    <div class="onboard-top">
+      <div class="onboard-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="36" height="36">
+          <path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="18,23 20,19 22,22 25,15 27,18 29,8" stroke="#2ABF87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="29" cy="8" r="2.5" fill="#2ABF87"/>
+        </svg>
+      </div>
+      <div class="onboard-app-name">Moni</div>
+      <div class="onboard-tagline">Your <strong>AI-powered</strong> money tracker.<br>Takes 30 seconds to set up.</div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div class="onboard-body" id="onboard-step-1">
+      <div class="onboard-dots">
+        <div class="onboard-dot active"></div>
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot"></div>
+      </div>
+      <div>
+        <div class="onboard-step-title">What's your monthly income?</div>
+        <div class="onboard-step-sub">Moni uses this to calculate your savings rate and give you smarter advice.</div>
+      </div>
+      <input class="onboard-big-input" id="onboard-income" type="number" min="0" placeholder="e.g. 5000" inputmode="decimal">
+      <div class="onboard-pills" id="income-pills">
+        <div class="onboard-pill" onclick="setOnboardIncome(1500)">$1,500</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(3000)">$3,000</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(5000)">$5,000</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(8000)">$8,000</div>
+      </div>
+      <button class="onboard-btn" onclick="onboardNext(2)">Continue →</button>
+      <div class="onboard-skip" onclick="onboardSkip()">Skip setup</div>
+    </div>
+
+    <!-- Step 2: Savings goal -->
+    <div class="onboard-body" id="onboard-step-2" hidden>
+      <div class="onboard-dots">
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot active"></div>
+        <div class="onboard-dot"></div>
+      </div>
+      <div>
+        <div class="onboard-step-title">What's your savings goal?</div>
+        <div class="onboard-step-sub">The standard recommendation is 20%. Moni will track your progress.</div>
+      </div>
+      <input class="onboard-big-input" id="onboard-savings" type="number" min="0" max="100" placeholder="20" inputmode="decimal" style="font-size:28px;">
+      <div style="text-align:center;font-size:13px;color:var(--fg-3);margin-top:-8px;">% of income per month</div>
+      <div class="onboard-pills">
+        <div class="onboard-pill" onclick="setOnboardSavings(10)">10%</div>
+        <div class="onboard-pill" onclick="setOnboardSavings(20)">20% ✓</div>
+        <div class="onboard-pill" onclick="setOnboardSavings(30)">30%</div>
+        <div class="onboard-pill" onclick="setOnboardSavings(50)">50%</div>
+      </div>
+      <button class="onboard-btn" onclick="onboardNext(3)">Continue →</button>
+      <div class="onboard-skip" onclick="onboardSkip()">Skip setup</div>
+    </div>
+
+    <!-- Step 3: Done -->
+    <div class="onboard-body" id="onboard-step-3" hidden>
+      <div class="onboard-dots">
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot active"></div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:44px;margin-bottom:10px;">🎉</div>
+        <div class="onboard-step-title">You're all set!</div>
+        <div class="onboard-step-sub" id="onboard-summary" style="text-align:center;"></div>
+      </div>
+      <button class="onboard-btn" onclick="onboardFinish()" style="background:linear-gradient(135deg,#2ABF87,#1a9e6e);">Start tracking →</button>
+    </div>
+  </div>
+</div>
+
 <!-- AI CHAT -->
 <button class="chat-fab" onclick="toggleChat()" id="chat-fab" title="Ask Moni AI">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="20" height="20">
@@ -1122,10 +1256,79 @@ updateThemeBtn();
 setType('expense');
 renderAll();
 updateDemoBanner();
+checkOnboarding();
 loadInsight();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── Onboarding ───────────────────────────────────────────────────────
+function checkOnboarding() {
+  const done = localStorage.getItem('moni_onboarded');
+  if (!done) {
+    document.getElementById('onboard-overlay').hidden = false;
+  }
+}
+
+function setOnboardIncome(val) {
+  document.getElementById('onboard-income').value = val;
+  document.querySelectorAll('#income-pills .onboard-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.textContent.replace(/\D/g,'')) === val);
+  });
+}
+
+function setOnboardSavings(val) {
+  document.getElementById('onboard-savings').value = val;
+  document.querySelectorAll('#onboard-step-2 .onboard-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.textContent) === val);
+  });
+}
+
+function onboardNext(step) {
+  if (step === 2) {
+    const inc = parseFloat(document.getElementById('onboard-income').value);
+    if (!inc || inc <= 0) { toast('Enter your monthly income'); return; }
+  }
+  if (step === 3) {
+    const sav = parseFloat(document.getElementById('onboard-savings').value);
+    if (sav === '' || sav < 0 || sav > 100) { toast('Enter a savings goal between 0–100%'); return; }
+    const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
+    const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
+    const goal = Math.round(inc * savPct / 100);
+    document.getElementById('onboard-summary').innerHTML =
+      `Monthly income of <strong>$${inc.toLocaleString()}</strong> with a <strong>${savPct}%</strong> savings goal — that's <strong>$${goal.toLocaleString()}</strong> saved each month.`;
+  }
+  document.querySelectorAll('[id^="onboard-step-"]').forEach(el => el.hidden = true);
+  document.getElementById(`onboard-step-${step}`).hidden = false;
+}
+
+function onboardFinish() {
+  const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
+  const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
+  if (inc > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    state.transactions.push({ id: uid(), type: 'income', name: 'Monthly Income', category: 'Salary', amount: inc, date: today, note: '', repeat: 'monthly', tag: '' });
+    state.budgets['Savings'] = Math.round(inc * savPct / 100);
+  }
+  state.isDemo = false;
+  state.onboardSavingsGoal = savPct;
+  saveState();
+  localStorage.setItem('moni_onboarded', '1');
+  document.getElementById('onboard-overlay').hidden = true;
+  updateDemoBanner();
+  renderAll();
+  loadInsight();
+  toast('Welcome to Moni! 🎉');
+}
+
+function onboardSkip() {
+  state.isDemo = false;
+  saveState();
+  localStorage.setItem('moni_onboarded', '1');
+  document.getElementById('onboard-overlay').hidden = true;
+  updateDemoBanner();
+  renderAll();
 }
 
 // ── AI Insight Card ──────────────────────────────────────────────────
