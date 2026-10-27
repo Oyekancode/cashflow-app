@@ -290,6 +290,29 @@ select.form-control { cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
+/* ─── Year Summary ──────────────────────────────────────────────────── */
+.year-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.year-stat { background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px; text-align: center; }
+.year-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-3); margin-bottom: 6px; }
+.year-stat-val { font-size: 20px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.year-best-worst { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.year-bw { background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px; }
+.year-bw-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-3); margin-bottom: 4px; }
+.year-bw-val { font-size: 15px; font-weight: 700; }
+@media (max-width: 700px) { .year-stat-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ─── Monte Carlo ───────────────────────────────────────────────────── */
+.forecast-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.forecast-chip { padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+.forecast-chip.p10 { background: var(--expense-soft); color: var(--expense); }
+.forecast-chip.p50 { background: var(--accent-soft); color: var(--accent); }
+.forecast-chip.p90 { background: var(--income-soft); color: var(--income); }
+.forecast-prob { font-size: 13px; color: var(--fg-2); margin-bottom: 14px; }
+.forecast-prob strong { color: var(--fg); font-size: 22px; font-weight: 800; }
+.forecast-ai { margin-top: 14px; padding: 12px 14px; background: linear-gradient(135deg,rgba(42,191,135,.08),rgba(59,111,232,.06)); border: 1px solid rgba(42,191,135,.2); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.55; color: var(--fg); }
+.forecast-ai-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #2ABF87; margin-bottom: 6px; }
+.forecast-no-data { text-align: center; padding: 24px; color: var(--fg-3); font-size: 13px; }
+
 /* ─── Onboarding ────────────────────────────────────────────────────── */
 .onboard-overlay {
   position: fixed; inset: 0; z-index: 500;
@@ -588,6 +611,20 @@ select.form-control { cursor: pointer; }
         <div style="margin-top:16px;" class="card">
           <div class="card-header"><span class="card-title">Top Expense Categories (All Time)</span></div>
           <div class="card-body" id="top-categories"></div>
+        </div>
+        <div style="margin-top:16px;" class="card">
+          <div class="card-header"><span class="card-title" id="year-summary-title">Year in Review</span></div>
+          <div class="card-body" id="year-summary"></div>
+        </div>
+        <div style="margin-top:16px;" class="card">
+          <div class="card-header">
+            <span class="card-title">12-Month Forecast</span>
+            <span style="font-size:11px;color:var(--fg-3);font-weight:600;">Monte Carlo · 1,000 simulations</span>
+          </div>
+          <div class="card-body" id="forecast-body">
+            <canvas id="forecast-canvas" width="600" height="200" style="width:100%;height:auto;margin-bottom:12px;"></canvas>
+            <div id="forecast-meta"></div>
+          </div>
         </div>
       </div>
 
@@ -1155,6 +1192,256 @@ function renderBudget(){
   document.getElementById('savings-content').innerHTML=`<div style="text-align:center;margin-bottom:16px;"><div style="font-size:42px;font-weight:800;letter-spacing:-2px;color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'};">${rate.toFixed(1)}%</div><div style="font-size:12px;color:var(--fg-3);">savings rate</div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg-3);margin-bottom:6px;"><span>Progress to 20% goal</span><span>${Math.min(rate,20).toFixed(1)}% / 20%</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'};"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="background:var(--income-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--income);font-weight:700;text-transform:uppercase;">Saved</div><div style="font-size:18px;font-weight:800;color:var(--income);font-variant-numeric:tabular-nums;">${net>=0?fmt(net):'$0'}</div></div><div style="background:var(--expense-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--expense);font-weight:700;text-transform:uppercase;">Spent</div><div style="font-size:18px;font-weight:800;color:var(--expense);font-variant-numeric:tabular-nums;">${fmt(exp)}</div></div></div>`;
 }
 
+// ── Normal distribution sample (Box-Muller) ──────────────────────────
+function randn(mean, std) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function renderYearSummary() {
+  const yr = state.currentYear;
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let totalInc = 0, totalExp = 0;
+  let bestMonth = null, bestNet = -Infinity, worstMonth = null, worstNet = Infinity;
+  const monthData = [];
+  for (let m = 0; m < 12; m++) {
+    const txns = txnsForMonth(m, yr);
+    const inc = totalIncome(txns), exp = totalExpense(txns), net = inc - exp;
+    totalInc += inc; totalExp += exp;
+    monthData.push({ label: mn[m], inc, exp, net });
+    if (txns.length > 0) {
+      if (net > bestNet) { bestNet = net; bestMonth = mn[m]; }
+      if (net < worstNet) { worstNet = net; worstMonth = mn[m]; }
+    }
+  }
+  const net = totalInc - totalExp;
+  const rate = totalInc > 0 ? ((net / totalInc) * 100).toFixed(1) : 0;
+  const spent = {};
+  state.transactions.filter(t => new Date(t.date).getFullYear() === yr && t.type === 'expense')
+    .forEach(t => { spent[t.category] = (spent[t.category] || 0) + t.amount; });
+  const topCat = Object.entries(spent).sort((a,b) => b[1]-a[1])[0];
+
+  document.getElementById('year-summary-title').textContent = `${yr} in Review`;
+  document.getElementById('year-summary').innerHTML = totalInc === 0
+    ? `<div class="forecast-no-data">No data for ${yr} yet.</div>`
+    : `<div class="year-stat-grid">
+        <div class="year-stat"><div class="year-stat-label">Total Income</div><div class="year-stat-val" style="color:var(--income)">${fmt(totalInc)}</div></div>
+        <div class="year-stat"><div class="year-stat-label">Total Spent</div><div class="year-stat-val" style="color:var(--expense)">${fmt(totalExp)}</div></div>
+        <div class="year-stat"><div class="year-stat-label">Net Saved</div><div class="year-stat-val" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div></div>
+      </div>
+      <div class="year-stat-grid" style="margin-bottom:12px;">
+        <div class="year-stat"><div class="year-stat-label">Savings Rate</div><div class="year-stat-val" style="color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'}">${rate}%</div></div>
+        ${topCat ? `<div class="year-stat" style="grid-column:span 2"><div class="year-stat-label">Biggest Expense Category</div><div class="year-stat-val" style="font-size:15px">${catEmoji(topCat[0])} ${topCat[0]} · ${fmt(topCat[1])}</div></div>` : ''}
+      </div>
+      ${bestMonth||worstMonth ? `<div class="year-best-worst">
+        ${bestMonth ? `<div class="year-bw"><div class="year-bw-label">🏆 Best Month</div><div class="year-bw-val" style="color:var(--income)">${bestMonth} · +${fmt(bestNet)}</div></div>` : ''}
+        ${worstMonth && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Toughest Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
+      </div>` : ''}`;
+}
+
+let forecastAiCache = {};
+
+function runMonteCarlo() {
+  const SIMS = 1000, MONTHS = 12;
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+
+  // Gather last 6 months of data
+  const history = [];
+  for (let i = 1; i <= 6; i++) {
+    let mo = now.getMonth() - i, yr = now.getFullYear();
+    if (mo < 0) { mo += 12; yr--; }
+    const txns = txnsForMonth(mo, yr);
+    if (txns.length > 0) history.push({ inc: totalIncome(txns), exp: totalExpense(txns) });
+  }
+
+  const metaEl = document.getElementById('forecast-meta');
+  if (history.length < 2) {
+    document.getElementById('forecast-canvas').style.display = 'none';
+    metaEl.innerHTML = '<div class="forecast-no-data">Add at least 2 months of transactions to generate a forecast.</div>';
+    return;
+  }
+  document.getElementById('forecast-canvas').style.display = '';
+
+  const meanInc = history.reduce((s,d) => s + d.inc, 0) / history.length;
+  const meanExp = history.reduce((s,d) => s + d.exp, 0) / history.length;
+  const stdInc  = Math.sqrt(history.reduce((s,d) => s + (d.inc - meanInc)**2, 0) / history.length);
+  const stdExp  = Math.sqrt(history.reduce((s,d) => s + (d.exp - meanExp)**2, 0) / history.length);
+
+  // Run simulations
+  const paths = [];
+  for (let s = 0; s < SIMS; s++) {
+    let cum = 0;
+    const path = [];
+    for (let m = 0; m < MONTHS; m++) {
+      const inc = Math.max(0, randn(meanInc, stdInc));
+      const exp = Math.max(0, randn(meanExp, stdExp));
+      cum += inc - exp;
+      path.push(cum);
+    }
+    paths.push(path);
+  }
+
+  // Compute percentiles per month
+  const p10 = [], p50 = [], p90 = [];
+  for (let m = 0; m < MONTHS; m++) {
+    const vals = paths.map(p => p[m]).sort((a,b) => a-b);
+    p10.push(vals[Math.floor(SIMS * 0.10)]);
+    p50.push(vals[Math.floor(SIMS * 0.50)]);
+    p90.push(vals[Math.floor(SIMS * 0.90)]);
+  }
+
+  // Savings goal: from onboarding or budget
+  const goalAmt = state.onboardSavingsGoal
+    ? (meanInc * state.onboardSavingsGoal / 100) * MONTHS
+    : meanInc * 0.20 * MONTHS;
+  const probMeet = paths.filter(p => p[MONTHS-1] >= goalAmt).length / SIMS;
+
+  drawForecastChart(p10, p50, p90, goalAmt);
+
+  const futureMonths = [];
+  for (let i = 1; i <= MONTHS; i++) {
+    let mo = now.getMonth() + i, yr = now.getFullYear();
+    if (mo > 11) { mo -= 12; yr++; }
+    futureMonths.push(mn[mo]);
+  }
+
+  metaEl.innerHTML = `
+    <div class="forecast-prob">Probability of meeting your savings goal: <strong>${(probMeet*100).toFixed(0)}%</strong></div>
+    <div class="forecast-meta">
+      <span class="forecast-chip p10">Pessimistic: ${fmt(p50[11]-p10[11])} less</span>
+      <span class="forecast-chip p50">Likely: ${fmt(p50[11])}</span>
+      <span class="forecast-chip p90">Optimistic: +${fmt(p90[11]-p50[11])}</span>
+    </div>
+    <div id="forecast-ai-wrap"></div>`;
+
+  loadForecastAI({ p10: p10[11], p50: p50[11], p90: p90[11], probMeet, goalAmt, meanInc, meanExp, months: MONTHS });
+}
+
+function drawForecastChart(p10, p50, p90, goalAmt) {
+  const canvas = document.getElementById('forecast-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 16, right: 16, bottom: 28, left: 56 };
+  ctx.clearRect(0, 0, W, H);
+
+  const allVals = [...p10, ...p90, goalAmt];
+  const minV = Math.min(...allVals, 0);
+  const maxV = Math.max(...allVals);
+  const range = maxV - minV || 1;
+  const cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
+  const n = p10.length;
+  const toX = i => pad.left + (i / (n - 1)) * cw;
+  const toY = v => pad.top + ch - ((v - minV) / range) * ch;
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+    (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  const gc = isDark ? '#2A2F3C' : '#E4E7ED';
+  const tc = isDark ? '#505A6A' : '#9299A6';
+
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const v = minV + (range * i / 4);
+    const y = toY(v);
+    ctx.strokeStyle = gc; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = tc; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(fmt(v), pad.left - 4, y + 4);
+  }
+
+  // Zero line
+  if (minV < 0 && maxV > 0) {
+    const y0 = toY(0);
+    ctx.strokeStyle = isDark ? '#505A6A' : '#C0C7D4'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(pad.left, y0); ctx.lineTo(W - pad.right, y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Goal line
+  const gy = toY(goalAmt);
+  ctx.strokeStyle = '#2ABF87'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(W - pad.right, gy); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#2ABF87'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Goal', pad.left + 4, gy - 4);
+
+  // Confidence band (p10 → p90)
+  ctx.beginPath();
+  p10.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  for (let i = n - 1; i >= 0; i--) ctx.lineTo(toX(i), toY(p90[i]));
+  ctx.closePath();
+  ctx.fillStyle = isDark ? 'rgba(91,140,245,.12)' : 'rgba(59,111,232,.08)';
+  ctx.fill();
+
+  // p10 line
+  ctx.beginPath();
+  p10.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = isDark ? '#E86060' : '#D94F4F'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // p90 line
+  ctx.beginPath();
+  p90.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = isDark ? '#2FBD86' : '#1A9E6E'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // p50 line (median)
+  ctx.beginPath();
+  p50.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = isDark ? '#5B8CF5' : '#3B6FE8'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Month labels
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  for (let i = 0; i < n; i += 2) {
+    let mo = now.getMonth() + i + 1; if (mo > 11) mo -= 12;
+    ctx.fillStyle = tc; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(mn[mo], toX(i), H - 8);
+  }
+}
+
+async function loadForecastAI({ p10, p50, p90, probMeet, goalAmt, meanInc, meanExp, months }) {
+  const key = `${state.currentMonth}-${state.currentYear}-forecast`;
+  const wrap = document.getElementById('forecast-ai-wrap');
+  if (!wrap) return;
+
+  if (forecastAiCache[key]) {
+    wrap.innerHTML = `<div class="forecast-ai"><div class="forecast-ai-label">Moni AI</div>${escapeHtml(forecastAiCache[key])}</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<div class="forecast-ai"><div class="forecast-ai-label">Moni AI</div><div class="skeleton-line" style="width:90%;margin-bottom:6px"></div><div class="skeleton-line" style="width:70%"></div></div>`;
+
+  try {
+    const context = `Monte Carlo forecast (1000 simulations, ${months} months ahead):
+- Median outcome: ${fmt(p50)} net savings
+- Pessimistic (10th percentile): ${fmt(p10)}
+- Optimistic (90th percentile): ${fmt(p90)}
+- Probability of meeting savings goal (${fmt(goalAmt)}): ${(probMeet*100).toFixed(0)}%
+- Based on avg monthly income ${fmt(meanInc)}, avg monthly expenses ${fmt(meanExp)}`;
+
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'Explain these forecast results in plain language. Be specific about the numbers. Tell me what this means for my finances and one thing I could do to improve the outlook. Under 60 words. No greeting.' }],
+        context,
+      }),
+    });
+    const data = await res.json();
+    if (data.reply) {
+      forecastAiCache[key] = data.reply;
+      wrap.innerHTML = `<div class="forecast-ai"><div class="forecast-ai-label">Moni AI</div>${escapeHtml(data.reply)}</div>`;
+    } else {
+      wrap.innerHTML = '';
+    }
+  } catch (e) {
+    wrap.innerHTML = '';
+  }
+}
+
 function renderAnalytics(){
   const mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],rows=[];let maxAbs=1;
   for(let i=5;i>=0;i--){let mo=state.currentMonth-i,yr=state.currentYear;if(mo<0){mo+=12;yr--;}const t=txnsForMonth(mo,yr),inc=totalIncome(t),exp=totalExpense(t),net=inc-exp;maxAbs=Math.max(maxAbs,Math.abs(net));rows.push({label:mn[mo],inc,exp,net});}
@@ -1172,6 +1459,8 @@ function renderAnalytics(){
   ctx.fillStyle='#D94F4F';ctx.fillRect(w-90,24,10,10);ctx.fillStyle=tc;ctx.fillText('Expense',w-76,33);
   const allE=state.transactions.filter(t=>t.type==='expense'),tot={};allE.forEach(t=>{tot[t.category]=(tot[t.category]||0)+t.amount;});const s=Object.entries(tot).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=s[0]?.[1]||1;
   document.getElementById('top-categories').innerHTML=s.length?s.map(([name,val],i)=>`<div class="budget-item"><div class="budget-header"><div class="budget-cat">${catEmoji(name)} ${name}</div><div class="budget-amounts">${fmt(val)} total</div></div><div class="progress-track"><div class="progress-fill" style="width:${val/mx*100}%;background:${catColor(name,i)}"></div></div></div>`).join(''):'<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">No expense data yet</div></div>';
+  renderYearSummary();
+  runMonteCarlo();
 }
 
 const catBgColors = ['#EEF3FD','#EAF7F2','#FDF0F0','#FDF4EB','#F3EFFE','#E8F6FD','#FDE8F4','#E8FDF5','#FEF9E8','#EEEFFE'];
