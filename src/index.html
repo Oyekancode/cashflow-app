@@ -149,6 +149,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .txn-amount.expense { color: var(--expense); }
 .txn-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
 .txn-item:hover .txn-actions { opacity: 1; }
+@media (max-width: 700px) { .txn-actions { opacity: 1; } }
 .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--fg-3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: background .1s, color .1s; }
 .icon-btn:hover { background: var(--surface-2); color: var(--fg); }
 .icon-btn.danger:hover { background: var(--expense-soft); color: var(--expense); }
@@ -313,6 +314,7 @@ select.form-control { cursor: pointer; }
       <div class="page" id="page-transactions">
         <div class="card">
           <div class="card-body">
+            <input id="txn-search" class="form-control" type="search" placeholder="🔍  Search transactions…" oninput="txnSearch=this.value;renderAllTxns()" style="margin-bottom:12px;">
             <div class="filter-bar">
               <div class="chip active" onclick="setFilter('all',this)">All</div>
               <div class="chip" onclick="setFilter('income',this)">Income</div>
@@ -479,6 +481,50 @@ select.form-control { cursor: pointer; }
   </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal" hidden>
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Edit Transaction</span>
+      <button class="icon-btn" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-toggle">
+        <button id="edit-btn-income" onclick="setEditType('income')">↑ Income</button>
+        <button id="edit-btn-expense" onclick="setEditType('expense')">↓ Expense</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Description</label>
+          <input id="edit-name" class="form-control" placeholder="e.g. Grocery run" type="text">
+        </div>
+        <div class="form-group" style="max-width:130px;">
+          <label>Amount ($)</label>
+          <input id="edit-amount" class="form-control" placeholder="0.00" type="number" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="edit-category" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input id="edit-date" class="form-control" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Note (optional)</label>
+        <input id="edit-note" class="form-control" placeholder="Any extra details…" type="text">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Update</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toasts"></div>
 
 <script>
@@ -506,6 +552,9 @@ if (state.transactions.length === 0) seedSampleData();
 let currentType = 'expense';
 let currentCatType = 'expense';
 let txnFilter = 'all';
+let txnSearch = '';
+let editingId = null;
+let editType = 'expense';
 
 function seedSampleData() {
   const y = new Date().getFullYear(), m = new Date().getMonth();
@@ -611,15 +660,15 @@ function renderDonut(){
   if(!total){svg.innerHTML='<text x="55" y="58" text-anchor="middle" font-size="11" fill="var(--fg-3)">No data</text>';document.getElementById('donut-legend').innerHTML='';return;}
   const cx=55,cy=55,r=38,thick=20;let angle=-Math.PI/2,paths='';
   sorted.forEach(([name,val],i)=>{const frac=val/total,a2=angle+frac*2*Math.PI-.01,x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle),x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2),large=frac>.5?1:0;paths+=`<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${catColor(name,i)}" stroke-width="${thick}" stroke-linecap="butt"/>`;angle=a2+.01;});
-  svg.innerHTML=paths+`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--fg)">${fmt(total)}</text><text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="var(--fg-3)">spent</text>`;
+  svg.innerHTML=paths+`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--fg)">${fmt(total)}</text><text x="${cx}" y="${cy+19}" text-anchor="middle" font-size="11" fill="var(--fg-3)">spent</text>`;
   document.getElementById('donut-legend').innerHTML=sorted.map(([name,val],i)=>`<div class="legend-item"><div class="legend-dot" style="background:${catColor(name,i)}"></div><span class="legend-name">${catEmoji(name)} ${name}</span><span class="legend-pct">${((val/total)*100).toFixed(0)}%</span></div>`).join('');
 }
 
-function txnHTML(t){return `<div class="txn-item"><div class="txn-icon" style="background:${t.type==='income'?'var(--income-soft)':'var(--expense-soft)'}">${catEmoji(t.category)}</div><div class="txn-info"><div class="txn-name">${t.name}</div><div class="txn-meta">${t.category} · ${fmtDate(t.date)}${t.note?' · '+t.note:''}</div></div><div class="txn-amount ${t.type}">${t.type==='income'?'+':'−'}${fmtFull(t.amount)}</div><div class="txn-actions"><button class="icon-btn danger" onclick="deleteTxn('${t.id}')">🗑</button></div></div>`;}
+function txnHTML(t){return `<div class="txn-item"><div class="txn-icon" style="background:${t.type==='income'?'var(--income-soft)':'var(--expense-soft)'}">${catEmoji(t.category)}</div><div class="txn-info"><div class="txn-name">${t.name}</div><div class="txn-meta">${t.category} · ${fmtDate(t.date)}${t.note?' · '+t.note:''}</div></div><div class="txn-amount ${t.type}">${t.type==='income'?'+':'−'}${fmtFull(t.amount)}</div><div class="txn-actions"><button class="icon-btn" onclick="openEditModal('${t.id}')" title="Edit">✏️</button><button class="icon-btn danger" onclick="deleteTxn('${t.id}')" title="Delete">🗑</button></div></div>`;}
 
 function renderRecentTxns(){const t=txnsForMonth(state.currentMonth,state.currentYear).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);document.getElementById('recent-txns').innerHTML=t.length?t.map(txnHTML).join(''):'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions this month</div></div>';}
 function setFilter(f,el){txnFilter=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderAllTxns();}
-function renderAllTxns(){let t=txnsForMonth(state.currentMonth,state.currentYear).sort((a,b)=>new Date(b.date)-new Date(a.date));if(txnFilter!=='all')t=t.filter(x=>x.type===txnFilter);document.getElementById('all-txns').innerHTML=t.length?t.map(txnHTML).join(''):'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions found</div></div>';}
+function renderAllTxns(){let t=txnsForMonth(state.currentMonth,state.currentYear).sort((a,b)=>new Date(b.date)-new Date(a.date));if(txnFilter!=='all')t=t.filter(x=>x.type===txnFilter);if(txnSearch.trim()){const q=txnSearch.toLowerCase();t=t.filter(x=>x.name.toLowerCase().includes(q)||x.category.toLowerCase().includes(q)||(x.note&&x.note.toLowerCase().includes(q)));}document.getElementById('all-txns').innerHTML=t.length?t.map(txnHTML).join(''):'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions found</div></div>';}
 
 function renderBudget(){
   const txns=txnsForMonth(state.currentMonth,state.currentYear);
@@ -656,6 +705,9 @@ function catBg(idx){const isDark=document.documentElement.getAttribute('data-the
 function renderCategories(){['expense','income'].forEach(type=>{const el=document.getElementById(`cat-${type}-grid`);el.className='cat-list';el.innerHTML=state.categories[type].map((c,i)=>`<div class="cat-row"><div class="cat-row-icon" style="background:${catBg(i)}">${c.emoji}</div><div class="cat-row-name">${c.name}</div><button class="icon-btn danger cat-row-delete" onclick="deleteCategory('${type}','${c.name}')" title="Remove">✕</button></div>`).join('');});}
 
 function openAddModal(){document.getElementById('txn-name').value='';document.getElementById('txn-amount').value='';document.getElementById('txn-note').value='';document.getElementById('txn-date').value=new Date().toISOString().split('T')[0];setType('expense');document.getElementById('add-modal').hidden=false;}
+function setEditType(type){editType=type;document.getElementById('edit-btn-income').className=type==='income'?'active-income':'';document.getElementById('edit-btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('edit-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
+function openEditModal(id){const t=state.transactions.find(x=>x.id===id);if(!t)return;editingId=id;document.getElementById('edit-name').value=t.name;document.getElementById('edit-amount').value=t.amount;document.getElementById('edit-note').value=t.note||'';document.getElementById('edit-date').value=t.date;setEditType(t.type);document.getElementById('edit-category').value=t.category;document.getElementById('edit-modal').hidden=false;}
+function saveEdit(){const t=state.transactions.find(x=>x.id===editingId);if(!t)return;const name=document.getElementById('edit-name').value.trim(),amount=parseFloat(document.getElementById('edit-amount').value),category=document.getElementById('edit-category').value,date=document.getElementById('edit-date').value,note=document.getElementById('edit-note').value.trim();if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}t.name=name;t.amount=amount;t.category=category;t.date=date;t.note=note;t.type=editType;saveState();closeModal('edit-modal');renderAll();toast('Updated!');}
 function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
 function setType(type){currentType=type;document.getElementById('btn-income').className=type==='income'?'active-income':'';document.getElementById('btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('txn-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
 function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim();if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note});saveState();closeModal('add-modal');renderAll();toast('Saved!');}
