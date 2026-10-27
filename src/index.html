@@ -113,7 +113,7 @@ body {
   padding: 24px 0;
   position: sticky; top: 0; height: 100%; overflow-y: auto;
 }
-.logo { padding: 0 20px 24px; display: flex; align-items: center; gap: 10px; }
+.logo { padding: 0 20px 24px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
 .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0; }
 .logo-text { font-size: 17px; font-weight: 700; letter-spacing: -.4px; }
 .nav { flex: 1; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; }
@@ -287,7 +287,7 @@ select.form-control { cursor: pointer; }
 
 <div class="app">
   <nav class="sidebar">
-    <div class="logo">
+    <div class="logo" onclick="showPage('dashboard',document.querySelector('.nav-item'))">
       <div class="logo-icon" style="background:#0D1B33;padding:0;overflow:hidden;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="32" height="32">
           <path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -739,7 +739,7 @@ function getBrandLogo(name){
   const key=name.toLowerCase().trim();
   for(const [brand,domain] of Object.entries(BRAND_DOMAINS)){
     if(key===brand||key.includes(brand)||brand.includes(key))
-      return `https://logo.clearbit.com/${domain}`;
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   }
   return null;
 }
