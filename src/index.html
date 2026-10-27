@@ -500,6 +500,7 @@ select.form-control { cursor: pointer; }
       <button class="nav-item" onclick="showPage('categories',this)"><span class="icon">🏷️</span> Categories</button>
     </div>
     <div class="sidebar-footer">
+      <div style="padding:6px 12px 4px;"><select id="currency-select" onchange="changeCurrency(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--fg);font-family:var(--font);font-size:12.5px;cursor:pointer;outline:none;"></select></div>
       <button class="nav-item" onclick="toggleTheme()" id="theme-btn"><span class="icon">🌙</span> Dark Mode</button>
       <button class="nav-item" onclick="startFresh()" style="color:var(--fg-3);font-size:12.5px;"><span class="icon">🔄</span> Reset App</button>
     </div>
@@ -840,9 +841,27 @@ select.form-control { cursor: pointer; }
       <div class="onboard-tagline">Your <strong>AI-powered</strong> money tracker.<br>Takes 30 seconds to set up.</div>
     </div>
 
-    <!-- Step 1: Welcome -->
+    <!-- Step 1: Currency -->
     <div class="onboard-body" id="onboard-step-1">
       <div class="onboard-dots">
+        <div class="onboard-dot active"></div>
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot"></div>
+        <div class="onboard-dot"></div>
+      </div>
+      <div>
+        <div class="onboard-step-title">What's your currency?</div>
+        <div class="onboard-step-sub">All amounts will display in your chosen currency.</div>
+      </div>
+      <select class="onboard-big-input" id="onboard-currency" style="font-size:15px;font-weight:600;text-align:left;cursor:pointer;"></select>
+      <button class="onboard-btn" onclick="onboardNext(2)">Continue →</button>
+      <div class="onboard-skip" onclick="onboardSkip()">Skip setup</div>
+    </div>
+
+    <!-- Step 2: Income -->
+    <div class="onboard-body" id="onboard-step-2" hidden>
+      <div class="onboard-dots">
+        <div class="onboard-dot"></div>
         <div class="onboard-dot active"></div>
         <div class="onboard-dot"></div>
         <div class="onboard-dot"></div>
@@ -853,18 +872,19 @@ select.form-control { cursor: pointer; }
       </div>
       <input class="onboard-big-input" id="onboard-income" type="number" min="0" placeholder="e.g. 5000" inputmode="decimal">
       <div class="onboard-pills" id="income-pills">
-        <div class="onboard-pill" onclick="setOnboardIncome(1500)">$1,500</div>
-        <div class="onboard-pill" onclick="setOnboardIncome(3000)">$3,000</div>
-        <div class="onboard-pill" onclick="setOnboardIncome(5000)">$5,000</div>
-        <div class="onboard-pill" onclick="setOnboardIncome(8000)">$8,000</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(1500)">1,500</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(3000)">3,000</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(5000)">5,000</div>
+        <div class="onboard-pill" onclick="setOnboardIncome(8000)">8,000</div>
       </div>
-      <button class="onboard-btn" onclick="onboardNext(2)">Continue →</button>
+      <button class="onboard-btn" onclick="onboardNext(3)">Continue →</button>
       <div class="onboard-skip" onclick="onboardSkip()">Skip setup</div>
     </div>
 
-    <!-- Step 2: Savings goal -->
-    <div class="onboard-body" id="onboard-step-2" hidden>
+    <!-- Step 3: Savings goal -->
+    <div class="onboard-body" id="onboard-step-3" hidden>
       <div class="onboard-dots">
+        <div class="onboard-dot"></div>
         <div class="onboard-dot"></div>
         <div class="onboard-dot active"></div>
         <div class="onboard-dot"></div>
@@ -881,13 +901,14 @@ select.form-control { cursor: pointer; }
         <div class="onboard-pill" onclick="setOnboardSavings(30)">30%</div>
         <div class="onboard-pill" onclick="setOnboardSavings(50)">50%</div>
       </div>
-      <button class="onboard-btn" onclick="onboardNext(3)">Continue →</button>
+      <button class="onboard-btn" onclick="onboardNext(4)">Continue →</button>
       <div class="onboard-skip" onclick="onboardSkip()">Skip setup</div>
     </div>
 
-    <!-- Step 3: Done -->
-    <div class="onboard-body" id="onboard-step-3" hidden>
+    <!-- Step 4: Done -->
+    <div class="onboard-body" id="onboard-step-4" hidden>
       <div class="onboard-dots">
+        <div class="onboard-dot"></div>
         <div class="onboard-dot"></div>
         <div class="onboard-dot"></div>
         <div class="onboard-dot active"></div>
@@ -1027,9 +1048,10 @@ function startFresh() {
   state.transactions=[]; state.budgets={}; state.isDemo=false; state.onboardSavingsGoal=null;
   saveState(); updateDemoBanner(); renderAll(); insightCache={}; forecastAiCache={};
   try{localStorage.removeItem('moni_onboarded');}catch(e){}
+  const sel = document.getElementById('onboard-currency');
+  sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code==='USD'?'selected':''}>${c.symbol} ${c.label} (${c.code})</option>`).join('');
+  document.querySelectorAll('[id^="onboard-step-"]').forEach(el => el.hidden = true);
   document.getElementById('onboard-step-1').hidden=false;
-  document.getElementById('onboard-step-2').hidden=true;
-  document.getElementById('onboard-step-3').hidden=true;
   document.getElementById('onboard-overlay').hidden=false;
 }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
@@ -1064,8 +1086,53 @@ function updateMonthDisplay() {
   document.getElementById('month-display').textContent=`${n[state.currentMonth]} ${state.currentYear}`;
 }
 
-function fmt(n){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);}
-function fmtFull(n){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);}
+const CURRENCIES = [
+  {code:'USD',symbol:'$',locale:'en-US',label:'US Dollar'},
+  {code:'EUR',symbol:'€',locale:'de-DE',label:'Euro'},
+  {code:'GBP',symbol:'£',locale:'en-GB',label:'British Pound'},
+  {code:'NGN',symbol:'₦',locale:'en-NG',label:'Nigerian Naira'},
+  {code:'CAD',symbol:'CA$',locale:'en-CA',label:'Canadian Dollar'},
+  {code:'CZK',symbol:'Kč',locale:'cs-CZ',label:'Czech Koruna'},
+  {code:'SEK',symbol:'kr',locale:'sv-SE',label:'Swedish Krona'},
+  {code:'NOK',symbol:'kr',locale:'nb-NO',label:'Norwegian Krone'},
+  {code:'DKK',symbol:'kr',locale:'da-DK',label:'Danish Krone'},
+  {code:'AUD',symbol:'A$',locale:'en-AU',label:'Australian Dollar'},
+  {code:'NZD',symbol:'NZ$',locale:'en-NZ',label:'New Zealand Dollar'},
+  {code:'CHF',symbol:'Fr',locale:'de-CH',label:'Swiss Franc'},
+  {code:'JPY',symbol:'¥',locale:'ja-JP',label:'Japanese Yen'},
+  {code:'CNY',symbol:'¥',locale:'zh-CN',label:'Chinese Yuan'},
+  {code:'INR',symbol:'₹',locale:'en-IN',label:'Indian Rupee'},
+  {code:'BRL',symbol:'R$',locale:'pt-BR',label:'Brazilian Real'},
+  {code:'MXN',symbol:'MX$',locale:'es-MX',label:'Mexican Peso'},
+  {code:'ZAR',symbol:'R',locale:'en-ZA',label:'South African Rand'},
+  {code:'KES',symbol:'KSh',locale:'en-KE',label:'Kenyan Shilling'},
+  {code:'GHS',symbol:'₵',locale:'en-GH',label:'Ghanaian Cedi'},
+  {code:'AED',symbol:'د.إ',locale:'ar-AE',label:'UAE Dirham'},
+  {code:'SAR',symbol:'﷼',locale:'ar-SA',label:'Saudi Riyal'},
+  {code:'SGD',symbol:'S$',locale:'en-SG',label:'Singapore Dollar'},
+  {code:'HKD',symbol:'HK$',locale:'en-HK',label:'Hong Kong Dollar'},
+  {code:'PLN',symbol:'zł',locale:'pl-PL',label:'Polish Złoty'},
+  {code:'HUF',symbol:'Ft',locale:'hu-HU',label:'Hungarian Forint'},
+  {code:'RON',symbol:'lei',locale:'ro-RO',label:'Romanian Leu'},
+  {code:'TRY',symbol:'₺',locale:'tr-TR',label:'Turkish Lira'},
+  {code:'RUB',symbol:'₽',locale:'ru-RU',label:'Russian Ruble'},
+  {code:'PKR',symbol:'₨',locale:'en-PK',label:'Pakistani Rupee'},
+];
+
+function getCurrency() {
+  const code = state.currency || 'USD';
+  return CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+}
+function fmt(n) {
+  const c = getCurrency();
+  try { return new Intl.NumberFormat(c.locale,{style:'currency',currency:c.code,maximumFractionDigits:0}).format(n); }
+  catch(e) { return c.symbol + Math.round(n).toLocaleString(); }
+}
+function fmtFull(n) {
+  const c = getCurrency();
+  try { return new Intl.NumberFormat(c.locale,{style:'currency',currency:c.code}).format(n); }
+  catch(e) { return c.symbol + n.toLocaleString(); }
+}
 function txnsForMonth(m,y){return state.transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});}
 function totalIncome(t){return t.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);}
 function totalExpense(t){return t.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);}
@@ -1553,6 +1620,7 @@ document.querySelectorAll('.modal-overlay').forEach(o => o.hidden = true);
 processRecurring();
 updateMonthDisplay();
 updateThemeBtn();
+initCurrencySelect();
 setType('expense');
 renderAll();
 updateDemoBanner();
@@ -1564,9 +1632,23 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── Onboarding ───────────────────────────────────────────────────────
+function initCurrencySelect() {
+  const sel = document.getElementById('currency-select');
+  if (!sel) return;
+  sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code===(state.currency||'USD')?'selected':''}>${c.symbol} ${c.label}</option>`).join('');
+}
+function changeCurrency(code) {
+  state.currency = code;
+  saveState();
+  insightCache = {}; forecastAiCache = {};
+  renderAll();
+  toast('Currency updated');
+}
 function checkOnboarding() {
   const done = localStorage.getItem('moni_onboarded');
   if (!done) {
+    const sel = document.getElementById('onboard-currency');
+    sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code===(state.currency||'USD')?'selected':''}>${c.symbol} ${c.label} (${c.code})</option>`).join('');
     document.getElementById('onboard-overlay').hidden = false;
   }
 }
@@ -1587,17 +1669,22 @@ function setOnboardSavings(val) {
 
 function onboardNext(step) {
   if (step === 2) {
+    state.currency = document.getElementById('onboard-currency').value;
+    saveState();
+  }
+  if (step === 3) {
     const inc = parseFloat(document.getElementById('onboard-income').value);
     if (!inc || inc <= 0) { toast('Enter your monthly income'); return; }
   }
-  if (step === 3) {
+  if (step === 4) {
     const sav = parseFloat(document.getElementById('onboard-savings').value);
     if (sav === '' || sav < 0 || sav > 100) { toast('Enter a savings goal between 0–100%'); return; }
     const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
     const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
     const goal = Math.round(inc * savPct / 100);
+    const c = getCurrency();
     document.getElementById('onboard-summary').innerHTML =
-      `Monthly income of <strong>$${inc.toLocaleString()}</strong> with a <strong>${savPct}%</strong> savings goal — that's <strong>$${goal.toLocaleString()}</strong> saved each month.`;
+      `Monthly income of <strong>${c.symbol}${inc.toLocaleString()}</strong> with a <strong>${savPct}%</strong> savings goal — that's <strong>${c.symbol}${goal.toLocaleString()}</strong> saved each month.`;
   }
   document.querySelectorAll('[id^="onboard-step-"]').forEach(el => el.hidden = true);
   document.getElementById(`onboard-step-${step}`).hidden = false;
