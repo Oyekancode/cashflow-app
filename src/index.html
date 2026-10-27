@@ -501,6 +501,7 @@ select.form-control { cursor: pointer; }
     </div>
     <div class="sidebar-footer">
       <button class="nav-item" onclick="toggleTheme()" id="theme-btn"><span class="icon">🌙</span> Dark Mode</button>
+      <button class="nav-item" onclick="startFresh()" style="color:var(--fg-3);font-size:12.5px;"><span class="icon">🔄</span> Reset App</button>
     </div>
   </nav>
 
@@ -523,6 +524,7 @@ select.form-control { cursor: pointer; }
           <button onclick="changeMonth(1)">›</button>
         </div>
         <button class="icon-btn theme-topbar-btn" id="theme-topbar-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+        <button class="icon-btn theme-topbar-btn" onclick="startFresh()" title="Reset app" style="font-size:15px;">🔄</button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add</button>
       </div>
     </div>
