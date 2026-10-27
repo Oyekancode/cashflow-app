@@ -233,6 +233,20 @@ select.form-control { cursor: pointer; }
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .modal-footer { padding: 0 20px 20px; display: flex; gap: 10px; justify-content: flex-end; }
 
+/* Debt tracker */
+.debt-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.debt-item:last-child { border-bottom: none; }
+.debt-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.debt-name { font-size: 14px; font-weight: 600; color: var(--fg-1); }
+.debt-balance { font-size: 14px; font-weight: 700; color: var(--expense); }
+.debt-meta { display: flex; gap: 12px; font-size: 12px; color: var(--fg-3); margin-bottom: 10px; }
+.debt-progress-wrap { background: var(--surface-2); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 10px; }
+.debt-progress-bar { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2ABF87, #1a9e6e); transition: width .4s; }
+.debt-actions { display: flex; gap: 8px; }
+.debt-pay-btn { flex: 1; }
+.debt-empty { text-align: center; padding: 40px 20px; color: var(--fg-3); }
+.debt-empty-icon { font-size: 40px; margin-bottom: 12px; }
+
 /* Pay Yourself First sheet */
 .pyf-overlay { align-items: flex-end; padding: 0; }
 .pyf-sheet {
@@ -530,6 +544,7 @@ select.form-control { cursor: pointer; }
       <button class="nav-item" onclick="showPage('transactions',this)"><span class="icon">↕️</span> Transactions</button>
       <button class="nav-item" onclick="showPage('budget',this)"><span class="icon">🎯</span> Budget Goals</button>
       <button class="nav-item" onclick="showPage('analytics',this)"><span class="icon">📈</span> Analytics</button>
+      <button class="nav-item" onclick="showPage('debt',this)"><span class="icon">💳</span> Debt Tracker</button>
       <button class="nav-item" onclick="showPage('categories',this)"><span class="icon">🏷️</span> Categories</button>
     </div>
     <div class="sidebar-footer">
@@ -664,6 +679,20 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
 
+      <div class="page" id="page-debt">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">My Debts</span>
+            <button class="btn btn-primary btn-sm" onclick="openDebtModal()">+ Add Debt</button>
+          </div>
+          <div class="card-body" id="debt-list"></div>
+        </div>
+        <div class="card" id="debt-ai-card" hidden>
+          <div class="card-header"><span class="card-title">🤖 Moni's Take</span></div>
+          <div class="card-body" id="debt-ai-content" style="font-size:14px;line-height:1.6;color:var(--fg-2);"></div>
+        </div>
+      </div>
+
       <div class="page" id="page-categories">
         <div class="grid-2">
           <div class="card">
@@ -690,6 +719,7 @@ select.form-control { cursor: pointer; }
     <button class="bnav-item" onclick="showPage('transactions',this)" data-bnav="transactions"><span class="icon">↕️</span>Transactions</button>
     <button class="bnav-item" onclick="showPage('budget',this)" data-bnav="budget"><span class="icon">🎯</span>Budget</button>
     <button class="bnav-item" onclick="showPage('analytics',this)" data-bnav="analytics"><span class="icon">📈</span>Analytics</button>
+    <button class="bnav-item" onclick="showPage('debt',this)" data-bnav="debt"><span class="icon">💳</span>Debt</button>
   </nav>
 </div>
 
@@ -772,6 +802,58 @@ select.form-control { cursor: pointer; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('budget-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveBudgetGoal()">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEBT MODAL -->
+<div class="modal-overlay" id="debt-modal" hidden>
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Add Debt</span>
+      <button class="icon-btn" onclick="closeModal('debt-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Debt name</label>
+        <input id="debt-name" class="form-control" type="text" placeholder="e.g. Credit Card, Student Loan">
+      </div>
+      <div class="form-group">
+        <label>Total balance owed</label>
+        <input id="debt-balance" class="form-control" type="number" min="0" step="1" placeholder="e.g. 5000">
+      </div>
+      <div class="form-group">
+        <label>Monthly payment</label>
+        <input id="debt-payment" class="form-control" type="number" min="0" step="1" placeholder="e.g. 200">
+      </div>
+      <div class="form-group">
+        <label>Interest rate % <span style="color:var(--fg-3);font-weight:400">(optional)</span></label>
+        <input id="debt-rate" class="form-control" type="number" min="0" max="100" step="0.1" placeholder="e.g. 18.9">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('debt-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDebt()">Add Debt</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEBT PAYMENT MODAL -->
+<div class="modal-overlay" id="debt-pay-modal" hidden>
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Log Payment</span>
+      <button class="icon-btn" onclick="closeModal('debt-pay-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label id="debt-pay-label">Payment amount</label>
+        <input id="debt-pay-amount" class="form-control" type="number" min="0" step="1">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('debt-pay-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmDebtPayment()">Log Payment</button>
     </div>
   </div>
 </div>
@@ -1020,7 +1102,7 @@ select.form-control { cursor: pointer; }
 window.Capacitor = window.Capacitor || {};
 
 let state = loadState() || {
-  transactions: [], budgets: {},
+  transactions: [], budgets: {}, debts: [],
   categories: {
     expense: [
       {emoji:'🛒',name:'Groceries'},{emoji:'🏠',name:'Rent'},{emoji:'⚡',name:'Utilities'},
@@ -1105,7 +1187,7 @@ function startFresh() {
 }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
-const pageTitles={dashboard:'Dashboard',transactions:'Transactions',budget:'Budget Goals',analytics:'Analytics',categories:'Categories'};
+const pageTitles={dashboard:'Dashboard',transactions:'Transactions',budget:'Budget Goals',analytics:'Analytics',categories:'Categories',debt:'Debt Tracker'};
 function showPage(id,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1260,7 +1342,7 @@ function updateThemeBtn(){
 }
 function toggleTheme(){const r=document.documentElement;if(isDarkNow()){r.setAttribute('data-theme','light');}else{r.setAttribute('data-theme','dark');}try{localStorage.setItem('cf_theme',r.getAttribute('data-theme'));}catch(e){}updateThemeBtn();}
 
-function renderAll(){renderTiles();renderBarChart();renderDonut();renderRecentTxns();renderAllTxns();renderBudget();renderAnalytics();renderCategories();}
+function renderAll(){renderTiles();renderBarChart();renderDonut();renderRecentTxns();renderAllTxns();renderBudget();renderAnalytics();renderCategories();renderDebt();}
 
 function renderTiles(){
   const txns=txnsForMonth(state.currentMonth,state.currentYear);
@@ -1626,6 +1708,128 @@ function confirmSavings(){
   toast('💰 Savings locked in!');
 }
 function skipSavings(){document.getElementById('pyf-modal').hidden=true;}
+
+// ── DEBT TRACKER ──────────────────────────────────────────
+let payingDebtId = null;
+
+function openDebtModal() {
+  ['debt-name','debt-balance','debt-payment','debt-rate'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('debt-modal').hidden = false;
+}
+
+function saveDebt() {
+  const name = document.getElementById('debt-name').value.trim();
+  const balance = parseFloat(document.getElementById('debt-balance').value) || 0;
+  const payment = parseFloat(document.getElementById('debt-payment').value) || 0;
+  const rate = parseFloat(document.getElementById('debt-rate').value) || 0;
+  if (!name || balance <= 0 || payment <= 0) { toast('Fill in name, balance and payment'); return; }
+  state.debts.push({ id: uid(), name, originalBalance: balance, balance, payment, rate, paidTotal: 0 });
+  saveState();
+  closeModal('debt-modal');
+  renderDebt();
+  toast('Debt added!');
+}
+
+function openDebtPayModal(id) {
+  const debt = state.debts.find(d => d.id === id);
+  if (!debt) return;
+  payingDebtId = id;
+  document.getElementById('debt-pay-label').textContent = `Payment toward "${debt.name}"`;
+  document.getElementById('debt-pay-amount').value = debt.payment;
+  document.getElementById('debt-pay-modal').hidden = false;
+}
+
+function confirmDebtPayment() {
+  const amt = parseFloat(document.getElementById('debt-pay-amount').value) || 0;
+  if (amt <= 0) { toast('Enter a valid amount'); return; }
+  const debt = state.debts.find(d => d.id === payingDebtId);
+  if (!debt) return;
+  debt.balance = Math.max(0, debt.balance - amt);
+  debt.paidTotal = (debt.paidTotal || 0) + amt;
+  saveState();
+  closeModal('debt-pay-modal');
+  renderDebt();
+  if (debt.balance === 0) {
+    toast('🎉 Debt cleared! Amazing work!');
+  } else {
+    toast('Payment logged!');
+  }
+}
+
+function deleteDebt(id) {
+  if (!confirm('Remove this debt?')) return;
+  state.debts = state.debts.filter(d => d.id !== id);
+  saveState();
+  renderDebt();
+  toast('Removed');
+}
+
+function debtPayoffMonths(balance, payment, rate) {
+  if (payment <= 0) return Infinity;
+  if (rate <= 0) return Math.ceil(balance / payment);
+  const r = rate / 100 / 12;
+  if (payment <= balance * r) return Infinity;
+  return Math.ceil(-Math.log(1 - (balance * r) / payment) / Math.log(1 + r));
+}
+
+function renderDebt() {
+  const el = document.getElementById('debt-list');
+  if (!state.debts || state.debts.length === 0) {
+    el.innerHTML = `<div class="debt-empty"><div class="debt-empty-icon">💳</div><div style="font-size:14px;margin-bottom:4px;font-weight:600">No debts tracked</div><div style="font-size:13px">Add a debt to see your payoff timeline</div></div>`;
+    document.getElementById('debt-ai-card').hidden = true;
+    return;
+  }
+  el.innerHTML = state.debts.map(d => {
+    const pct = Math.round((1 - d.balance / d.originalBalance) * 100);
+    const months = debtPayoffMonths(d.balance, d.payment, d.rate);
+    const payoffStr = months === Infinity ? 'Payment too low' : months <= 0 ? '🎉 Paid off!' : months === 1 ? '1 month left' : `~${months} months left`;
+    const totalInterest = d.rate > 0 && months !== Infinity ? Math.round((d.payment * months) - d.balance) : 0;
+    return `<div class="debt-item">
+      <div class="debt-row1">
+        <span class="debt-name">💳 ${d.name}</span>
+        <span class="debt-balance">${fmt(d.balance)}</span>
+      </div>
+      <div class="debt-meta">
+        <span>📅 ${payoffStr}</span>
+        <span>💸 ${fmt(d.payment)}/mo</span>
+        ${d.rate > 0 ? `<span>📊 ${d.rate}% APR</span>` : ''}
+        ${totalInterest > 0 ? `<span>⚠️ ${fmt(totalInterest)} interest</span>` : ''}
+      </div>
+      <div class="debt-progress-wrap"><div class="debt-progress-bar" style="width:${pct}%"></div></div>
+      <div class="debt-actions">
+        <button class="btn btn-primary btn-sm debt-pay-btn" onclick="openDebtPayModal('${d.id}')">Log Payment</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteDebt('${d.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+  loadDebtAI();
+}
+
+async function loadDebtAI() {
+  if (!state.debts || state.debts.length === 0) return;
+  const card = document.getElementById('debt-ai-card');
+  const content = document.getElementById('debt-ai-content');
+  card.hidden = false;
+  content.innerHTML = '<span style="opacity:.5">Moni is thinking...</span>';
+  const summary = state.debts.map(d => {
+    const months = debtPayoffMonths(d.balance, d.payment, d.rate);
+    return `${d.name}: ${fmt(d.balance)} remaining, ${fmt(d.payment)}/month, ${months === Infinity ? 'payment too low' : months + ' months to payoff'}${d.rate > 0 ? ', ' + d.rate + '% APR' : ''}`;
+  }).join('\n');
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: `Give me one practical tip about my debts. Be specific and encouraging. Under 50 words.` }],
+        context: `User's debts:\n${summary}\n${buildContext()}`
+      })
+    });
+    const data = await res.json();
+    content.textContent = data.reply || '';
+  } catch(e) {
+    card.hidden = true;
+  }
+}
 function deleteTxn(id){if(!confirm('Delete this transaction?'))return;state.transactions=state.transactions.filter(t=>t.id!==id);saveState();renderAll();toast('Deleted');}
 function openBudgetModal(){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value='';document.getElementById('budget-modal').hidden=false;}
 function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;saveState();closeModal('budget-modal');renderBudget();toast('Goal saved!');}
@@ -1683,6 +1887,8 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 ['cashflow_v1','cashflow_v2'].forEach(k => { try{localStorage.removeItem(k);}catch(e){} });
 // migrate cashflow_v3 → moni_v1
 try{const old=localStorage.getItem('cashflow_v3');if(old&&!localStorage.getItem('moni_v1')){localStorage.setItem('moni_v1',old);}localStorage.removeItem('cashflow_v3');}catch(e){}
+// ensure debts array exists for existing users
+if(!state.debts) state.debts=[];
 
 // Restore saved theme
 try{const t=localStorage.getItem('cf_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
