@@ -556,8 +556,8 @@ select.form-control { cursor: pointer; }
     </div>
 
     <div id="demo-banner" class="demo-banner" hidden>
-      <span>👀 You're viewing sample data</span>
-      <button class="demo-fresh-btn" onclick="startFresh()">Start fresh →</button>
+      <span id="demo-banner-text">👀 Sample data — add a transaction to replace it</span>
+      <button class="demo-fresh-btn" onclick="startFresh()">Clear →</button>
     </div>
 
     <div class="content">
@@ -1593,7 +1593,7 @@ function openEditModal(id){const t=state.transactions.find(x=>x.id===id);if(!t)r
 function saveEdit(){const t=state.transactions.find(x=>x.id===editingId);if(!t)return;const name=document.getElementById('edit-name').value.trim(),amount=parseFloat(document.getElementById('edit-amount').value),category=document.getElementById('edit-category').value,date=document.getElementById('edit-date').value,note=document.getElementById('edit-note').value.trim(),repeat=document.getElementById('edit-repeat').value,tag=document.getElementById('edit-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}t.name=name;t.amount=amount;t.category=category;t.date=date;t.note=note;t.type=editType;t.repeat=repeat;t.tag=tag;processRecurring();saveState();closeModal('edit-modal');renderAll();toast('Updated!');}
 function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
 function setType(type){currentType=type;document.getElementById('btn-income').className=type==='income'?'active-income':'';document.getElementById('btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('txn-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
-function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');if(currentType==='income'&&state.onboardSavingsGoal>0)showPYF(amount,date);}
+function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}if(state.demoAfterOnboard){state.transactions=[];state.budgets={};state.isDemo=false;state.demoAfterOnboard=false;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');if(currentType==='income'&&state.onboardSavingsGoal>0)showPYF(amount,date);}
 let _pyfDate='';
 function showPYF(incomeAmt,date){
   _pyfDate=date;
@@ -1758,19 +1758,25 @@ function onboardNext(step) {
 function onboardFinish() {
   const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
   const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
+  state.onboardSavingsGoal = savPct;
+  // Load demo data so the dashboard isn't empty
+  seedSampleData();
+  // Replace demo income amounts with user's actual income
   if (inc > 0) {
     const today = new Date().toISOString().split('T')[0];
     state.transactions.push({ id: uid(), type: 'income', name: 'Monthly Income', category: 'Salary', amount: inc, date: today, note: '', repeat: 'monthly', tag: '' });
     state.budgets['Savings'] = Math.round(inc * savPct / 100);
   }
-  state.isDemo = false;
-  state.onboardSavingsGoal = savPct;
+  // isDemo=true so banner shows, but mark as "onboarded demo" so we know to clear on first real txn
+  state.isDemo = true;
+  state.demoAfterOnboard = true;
   saveState();
   localStorage.setItem('moni_onboarded', '1');
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
   loadInsight();
+  if (inc > 0) showPYF(inc, new Date().toISOString().split('T')[0]);
   toast('Welcome to Moni! 🎉');
 }
 
