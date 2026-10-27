@@ -1020,7 +1020,7 @@ function goToFilter(filter){
   if(chip)chip.classList.add('active');
   renderAllTxns();
 }
-function startFresh() { state.transactions=[]; state.budgets={}; state.isDemo=false; saveState(); updateDemoBanner(); renderAll(); }
+function startFresh() { state.transactions=[]; state.budgets={}; state.isDemo=false; state.onboardSavingsGoal=null; saveState(); updateDemoBanner(); renderAll(); insightCache={}; forecastAiCache={}; try{localStorage.removeItem('moni_onboarded');}catch(e){} document.getElementById('onboard-step-1').hidden=false; document.getElementById('onboard-step-2').hidden=true; document.getElementById('onboard-step-3').hidden=true; document.getElementById('onboard-overlay').hidden=false; }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
 const pageTitles={dashboard:'Dashboard',transactions:'Transactions',budget:'Budget Goals',analytics:'Analytics',categories:'Categories'};
