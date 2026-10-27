@@ -129,6 +129,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .topbar-title { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
 .topbar-logo { display: none; align-items: center; gap: 7px; cursor: pointer; }
 .topbar-logo-text { font-size: 17px; font-weight: 800; letter-spacing: -.4px; }
+.theme-topbar-btn { display: none; font-size: 18px; }
 .demo-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#2ABF8722; border-bottom:1px solid #2ABF8755; padding:10px max(16px,env(safe-area-inset-left,0px)); font-size:13px; color:var(--text); }
 .demo-fresh-btn { background:#2ABF87; color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
@@ -265,6 +266,7 @@ select.form-control { cursor: pointer; }
   .sidebar { display: none; }
   .topbar-logo { display: flex; }
   .topbar-title { display: none; }
+  .theme-topbar-btn { display: flex; }
   .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 10; }
   .bnav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; cursor: pointer; border: none; background: none; color: var(--fg-3); font-family: var(--font); font-size: 10px; font-weight: 600; transition: color .15s; }
   .bnav-item .icon { font-size: 20px; }
@@ -333,6 +335,7 @@ select.form-control { cursor: pointer; }
           <span class="month-label" id="month-display"></span>
           <button onclick="changeMonth(1)">›</button>
         </div>
+        <button class="icon-btn theme-topbar-btn" id="theme-topbar-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
         <button class="btn btn-primary" onclick="openAddModal()">+ Add</button>
       </div>
     </div>
@@ -793,7 +796,12 @@ function catEmoji(name){const c=[...state.categories.expense,...state.categories
 function fmtDate(s){const d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
 
 function isDarkNow(){const t=document.documentElement.getAttribute('data-theme');return t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme:dark)').matches);}
-function updateThemeBtn(){document.getElementById('theme-btn').innerHTML=isDarkNow()?'<span class="icon">☀️</span> Light Mode':'<span class="icon">🌙</span> Dark Mode';}
+function updateThemeBtn(){
+  const dark=isDarkNow();
+  document.getElementById('theme-btn').innerHTML=dark?'<span class="icon">☀️</span> Light Mode':'<span class="icon">🌙</span> Dark Mode';
+  const tb=document.getElementById('theme-topbar-btn');
+  if(tb)tb.textContent=dark?'☀️':'🌙';
+}
 function toggleTheme(){const r=document.documentElement;if(isDarkNow()){r.setAttribute('data-theme','light');}else{r.setAttribute('data-theme','dark');}try{localStorage.setItem('cf_theme',r.getAttribute('data-theme'));}catch(e){}updateThemeBtn();}
 
 function renderAll(){renderTiles();renderBarChart();renderDonut();renderRecentTxns();renderAllTxns();renderBudget();renderAnalytics();renderCategories();}
