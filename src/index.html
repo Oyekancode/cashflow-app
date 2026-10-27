@@ -841,6 +841,12 @@ function changeMonth(dir) {
   if(state.currentMonth>11){state.currentMonth=0;state.currentYear++;}
   if(state.currentMonth<0){state.currentMonth=11;state.currentYear--;}
   saveState(); updateMonthDisplay(); renderAll();
+  chatHistory = [];
+  if (chatOpen) {
+    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('chat-suggestions').style.display = '';
+    initChatGreeting();
+  }
 }
 function updateMonthDisplay() {
   const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
