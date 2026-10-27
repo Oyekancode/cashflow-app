@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>CashFlow</title>
+  <title>Moni</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
   <style>
@@ -265,7 +265,7 @@ select.form-control { cursor: pointer; }
   <nav class="sidebar">
     <div class="logo">
       <div class="logo-icon">💸</div>
-      <span class="logo-text">CashFlow</span>
+      <span class="logo-text">Moni</span>
     </div>
     <div class="nav">
       <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span> Dashboard</button>
@@ -297,7 +297,7 @@ select.form-control { cursor: pointer; }
         <div class="tiles" id="tiles-summary"></div>
         <div class="grid-2">
           <div class="card">
-            <div class="card-header"><span class="card-title">Cash Flow — Monthly</span></div>
+            <div class="card-header"><span class="card-title">Monthly Overview</span></div>
             <div class="card-body"><div class="bar-chart" id="bar-chart"></div></div>
           </div>
           <div class="card">
@@ -633,8 +633,8 @@ function seedSampleData() {
   saveState();
 }
 
-function saveState() { try{localStorage.setItem('cashflow_v3',JSON.stringify(state));}catch(e){} }
-function loadState() { try{const d=localStorage.getItem('cashflow_v3');return d?JSON.parse(d):null;}catch(e){return null;} }
+function saveState() { try{localStorage.setItem('moni_v1',JSON.stringify(state));}catch(e){} }
+function loadState() { try{const d=localStorage.getItem('moni_v1')||localStorage.getItem('cashflow_v3');return d?JSON.parse(d):null;}catch(e){return null;} }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 
 const pageTitles={dashboard:'Dashboard',transactions:'Transactions',budget:'Budget Goals',analytics:'Analytics',categories:'Categories'};
@@ -824,7 +824,7 @@ function exportCSV() {
   const csv = rows.map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download = `cashflow-${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `moni-${new Date().toISOString().split('T')[0]}.csv`;
   a.click(); URL.revokeObjectURL(a.href);
   toast('Exported!');
 }
@@ -834,6 +834,8 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 
 // Clear any stale localStorage from older versions
 ['cashflow_v1','cashflow_v2'].forEach(k => { try{localStorage.removeItem(k);}catch(e){} });
+// migrate cashflow_v3 → moni_v1
+try{const old=localStorage.getItem('cashflow_v3');if(old&&!localStorage.getItem('moni_v1')){localStorage.setItem('moni_v1',old);}localStorage.removeItem('cashflow_v3');}catch(e){}
 
 // Restore saved theme
 try{const t=localStorage.getItem('cf_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}

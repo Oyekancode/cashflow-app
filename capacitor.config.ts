@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yourname.cashflow',        // ← change to your bundle ID
-  appName: 'CashFlow',
+  appId: 'com.yourname.moni',        // ← change to your bundle ID before publishing
+  appName: 'Moni',
   webDir: 'src',
   server: {
     androidScheme: 'https',

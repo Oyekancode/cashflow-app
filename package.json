@@ -1,7 +1,7 @@
 {
-  "name": "cashflow-app",
+  "name": "moni-app",
   "version": "1.0.0",
-  "description": "CashFlow — personal budgeting and cash flow tracker",
+  "description": "Moni — your personal money companion",
   "scripts": {
     "build": "echo 'Static site — nothing to compile'",
     "sync": "npx cap sync",
