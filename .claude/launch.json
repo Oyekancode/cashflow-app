@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Moni",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "src", "-p", "4455", "-s"],
+      "port": 4455
+    }
+  ]
+}

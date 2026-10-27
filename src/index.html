@@ -233,6 +233,31 @@ select.form-control { cursor: pointer; }
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .modal-footer { padding: 0 20px 20px; display: flex; gap: 10px; justify-content: flex-end; }
 
+/* Pay Yourself First sheet */
+.pyf-overlay { align-items: flex-end; padding: 0; }
+.pyf-sheet {
+  background: var(--card); border-radius: 24px 24px 0 0;
+  padding: 32px 24px 40px; width: 100%; max-width: 480px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  box-shadow: 0 -4px 40px rgba(0,0,0,.18);
+  animation: slideUp .28s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.pyf-emoji { font-size: 40px; margin-bottom: 4px; }
+.pyf-title { font-size: 20px; font-weight: 700; color: var(--fg-1); }
+.pyf-sub { font-size: 14px; color: var(--fg-2); text-align: center; margin-bottom: 4px; }
+.pyf-amount-row { display: flex; align-items: center; gap: 4px; margin: 8px 0 0; }
+.pyf-currency { font-size: 28px; font-weight: 700; color: var(--income); }
+.pyf-input {
+  font-size: 40px; font-weight: 800; color: var(--income);
+  background: transparent; border: none; border-bottom: 2px solid var(--income);
+  width: 180px; text-align: center; outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.pyf-hint { font-size: 11.5px; color: var(--fg-3); margin-bottom: 8px; }
+.pyf-confirm-btn { width: 100%; margin-top: 8px; padding: 14px; font-size: 16px; }
+.pyf-skip-btn { width: 100%; font-size: 14px; color: var(--fg-3); }
+
 .empty { text-align: center; padding: 40px 20px; color: var(--fg-3); }
 .empty-icon { font-size: 36px; margin-bottom: 12px; }
 .empty-text { font-size: 13.5px; }
@@ -743,6 +768,22 @@ select.form-control { cursor: pointer; }
   </div>
 </div>
 
+<!-- PAY YOURSELF FIRST SHEET -->
+<div class="modal-overlay pyf-overlay" id="pyf-modal" hidden onclick="skipSavings()">
+  <div class="pyf-sheet" onclick="event.stopPropagation()">
+    <div class="pyf-emoji">💰</div>
+    <div class="pyf-title">Pay yourself first</div>
+    <div class="pyf-sub">Based on your <strong id="pyf-pct"></strong> goal, set aside:</div>
+    <div class="pyf-amount-row">
+      <span class="pyf-currency" id="pyf-currency-sym"></span>
+      <input class="pyf-input" id="pyf-amount" type="number" min="0" inputmode="decimal">
+    </div>
+    <div class="pyf-hint">You can adjust the amount</div>
+    <button class="btn btn-primary pyf-confirm-btn" onclick="confirmSavings()">Save it 💾</button>
+    <button class="btn btn-ghost pyf-skip-btn" onclick="skipSavings()">Not this time</button>
+  </div>
+</div>
+
 <!-- CATEGORY MODAL -->
 <div class="modal-overlay" id="cat-modal" hidden>
   <div class="modal" onclick="event.stopPropagation()">
@@ -976,7 +1017,7 @@ let state = loadState() || {
     expense: [
       {emoji:'🛒',name:'Groceries'},{emoji:'🏠',name:'Rent'},{emoji:'⚡',name:'Utilities'},
       {emoji:'🚗',name:'Transport'},{emoji:'🍽️',name:'Dining'},{emoji:'🏥',name:'Health'},
-      {emoji:'🎬',name:'Entertainment'},{emoji:'👗',name:'Clothing'},{emoji:'📱',name:'Subscriptions'},{emoji:'📦',name:'Other'},
+      {emoji:'🎬',name:'Entertainment'},{emoji:'👗',name:'Clothing'},{emoji:'📱',name:'Subscriptions'},{emoji:'💰',name:'Savings'},{emoji:'📦',name:'Other'},
     ],
     income: [
       {emoji:'💼',name:'Salary'},{emoji:'💡',name:'Freelance'},{emoji:'📈',name:'Investment'},{emoji:'🎁',name:'Gift'},{emoji:'💰',name:'Other Income'},
@@ -1552,7 +1593,31 @@ function openEditModal(id){const t=state.transactions.find(x=>x.id===id);if(!t)r
 function saveEdit(){const t=state.transactions.find(x=>x.id===editingId);if(!t)return;const name=document.getElementById('edit-name').value.trim(),amount=parseFloat(document.getElementById('edit-amount').value),category=document.getElementById('edit-category').value,date=document.getElementById('edit-date').value,note=document.getElementById('edit-note').value.trim(),repeat=document.getElementById('edit-repeat').value,tag=document.getElementById('edit-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}t.name=name;t.amount=amount;t.category=category;t.date=date;t.note=note;t.type=editType;t.repeat=repeat;t.tag=tag;processRecurring();saveState();closeModal('edit-modal');renderAll();toast('Updated!');}
 function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
 function setType(type){currentType=type;document.getElementById('btn-income').className=type==='income'?'active-income':'';document.getElementById('btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('txn-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
-function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');}
+function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');if(currentType==='income'&&state.onboardSavingsGoal>0)showPYF(amount,date);}
+let _pyfDate='';
+function showPYF(incomeAmt,date){
+  _pyfDate=date;
+  const pct=state.onboardSavingsGoal||20;
+  const suggested=Math.round(incomeAmt*pct/100);
+  const c=getCurrency();
+  document.getElementById('pyf-pct').textContent=pct+'% savings';
+  document.getElementById('pyf-currency-sym').textContent=c.symbol;
+  document.getElementById('pyf-amount').value=suggested;
+  document.getElementById('pyf-modal').hidden=false;
+}
+function confirmSavings(){
+  const amt=parseFloat(document.getElementById('pyf-amount').value)||0;
+  if(amt<=0){toast('Enter an amount');return;}
+  // ensure Savings category exists
+  if(!state.categories.expense.find(c=>c.name==='Savings')){
+    state.categories.expense.push({emoji:'💰',name:'Savings'});
+  }
+  state.transactions.push({id:uid(),type:'expense',name:'Savings Transfer',category:'Savings',amount:amt,date:_pyfDate,note:'',repeat:'none',tag:''});
+  saveState();renderAll();
+  document.getElementById('pyf-modal').hidden=true;
+  toast('💰 Savings locked in!');
+}
+function skipSavings(){document.getElementById('pyf-modal').hidden=true;}
 function deleteTxn(id){if(!confirm('Delete this transaction?'))return;state.transactions=state.transactions.filter(t=>t.id!==id);saveState();renderAll();toast('Deleted');}
 function openBudgetModal(){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value='';document.getElementById('budget-modal').hidden=false;}
 function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;saveState();closeModal('budget-modal');renderBudget();toast('Goal saved!');}
