@@ -548,6 +548,9 @@ select.form-control { cursor: pointer; }
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-2LNBLKVXTC');
+    function track(event, params) {
+      if (typeof gtag === 'function') gtag('event', event, params || {});
+    }
   </script>
 </head>
 <body>
@@ -1392,6 +1395,7 @@ function renderTiles(){
   const monthKey = `confetti-${state.currentMonth}-${state.currentYear}`;
   if (rate >= goalPct && inc > 0 && !sessionStorage.getItem(monthKey)) {
     sessionStorage.setItem(monthKey, '1');
+    track('savings_goal_hit', { goal_pct: goalPct, actual_rate: Number(rate) });
     setTimeout(() => { launchConfetti(3000); toast(`🎉 You hit your ${goalPct}% savings goal!`); }, 400);
   }
 }
@@ -1722,7 +1726,7 @@ function openEditModal(id){const t=state.transactions.find(x=>x.id===id);if(!t)r
 function saveEdit(){const t=state.transactions.find(x=>x.id===editingId);if(!t)return;const name=document.getElementById('edit-name').value.trim(),amount=parseFloat(document.getElementById('edit-amount').value),category=document.getElementById('edit-category').value,date=document.getElementById('edit-date').value,note=document.getElementById('edit-note').value.trim(),repeat=document.getElementById('edit-repeat').value,tag=document.getElementById('edit-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}t.name=name;t.amount=amount;t.category=category;t.date=date;t.note=note;t.type=editType;t.repeat=repeat;t.tag=tag;processRecurring();saveState();closeModal('edit-modal');renderAll();toast('Updated!');}
 function closeModal(id){document.querySelectorAll('.modal-overlay').forEach(m=>m.hidden=true);}
 function setType(type){currentType=type;document.getElementById('btn-income').className=type==='income'?'active-income':'';document.getElementById('btn-expense').className=type==='expense'?'active-expense':'';document.getElementById('txn-category').innerHTML=state.categories[type].map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');}
-function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}if(state.demoAfterOnboard){state.transactions=[];state.budgets={};state.isDemo=false;state.demoAfterOnboard=false;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');if(currentType==='income'&&state.onboardSavingsGoal>0)showPYF(amount,date);}
+function saveTransaction(){const name=document.getElementById('txn-name').value.trim(),amount=parseFloat(document.getElementById('txn-amount').value),category=document.getElementById('txn-category').value,date=document.getElementById('txn-date').value,note=document.getElementById('txn-note').value.trim(),repeat=document.getElementById('txn-repeat').value,tag=document.getElementById('txn-tag').value;if(!name||!amount||amount<=0||!date){toast('Fill in all required fields');return;}if(state.demoAfterOnboard){state.transactions=[];state.budgets={};state.isDemo=false;state.demoAfterOnboard=false;}state.transactions.push({id:uid(),type:currentType,name,amount,category,date,note,repeat,tag});track('transaction_added',{type:currentType,category,currency:state.currency||'USD'});processRecurring();saveState();closeModal('add-modal');renderAll();toast('Saved!');if(currentType==='income'&&state.onboardSavingsGoal>0)showPYF(amount,date);}
 let _pyfDate='';
 function showPYF(incomeAmt,date){
   _pyfDate=date;
@@ -1744,6 +1748,7 @@ function confirmSavings(){
   state.transactions.push({id:uid(),type:'expense',name:'Savings Transfer',category:'Savings',amount:amt,date:_pyfDate,note:'',repeat:'none',tag:''});
   saveState();renderAll();
   document.getElementById('pyf-modal').hidden=true;
+  track('pyf_confirmed', { amount: amt, currency: state.currency || 'USD' });
   launchConfetti(2200);
   toast('💰 Savings locked in!');
 }
@@ -1806,6 +1811,7 @@ function saveDebt() {
   const rate = parseFloat(document.getElementById('debt-rate').value) || 0;
   if (!name || balance <= 0 || payment <= 0) { toast('Fill in name, balance and payment'); return; }
   state.debts.push({ id: uid(), name, originalBalance: balance, balance, payment, rate, paidTotal: 0 });
+  track('debt_added', { balance, rate_has_interest: rate > 0 });
   saveState();
   closeModal('debt-modal');
   renderDebt();
@@ -2094,12 +2100,14 @@ function onboardFinish() {
   updateDemoBanner();
   renderAll();
   loadInsight();
+  track('onboarding_complete', { currency: state.currency || 'USD', savings_goal: savPct });
   if (inc > 0) showPYF(inc, new Date().toISOString().split('T')[0]);
   toast('Welcome to Moni! 🎉');
 }
 
 function onboardSkip() {
   seedSampleData(); // loads demo data + sets isDemo=true
+  track('onboarding_skipped');
   saveState();
   localStorage.setItem('moni_onboarded', '1');
   document.getElementById('onboard-overlay').hidden = true;
@@ -2165,6 +2173,7 @@ function toggleChat() {
   panel.hidden = !chatOpen;
   if (chatOpen) {
     if (chatHistory.length === 0) initChatGreeting();
+    track('chat_opened');
     setTimeout(() => document.getElementById('chat-input').focus(), 100);
   }
 }
