@@ -1788,7 +1788,7 @@ const TIP_DEFS = {
   'Forecast': 'A Monte Carlo simulation that runs 1,000 possible futures based on your past cash flow patterns, giving you a probability range for hitting your savings goal.',
 };
 function tip(label) {
-  return `<i class="tip-icon" onclick="openTipPopup('${label}')" title="${label}">i</i>`;
+  return `<i class="tip-icon" onclick="event.stopPropagation();openTipPopup('${label}')" title="${label}">i</i>`;
 }
 function openTipPopup(label) {
   const text = TIP_DEFS[label] || label;
