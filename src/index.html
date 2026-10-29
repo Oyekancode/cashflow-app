@@ -1184,6 +1184,8 @@ let txnFilter = 'all';
 let txnSearch = '';
 let editingId = null;
 let editType = 'expense';
+let insightCache = {};
+let forecastAiCache = {};
 
 function seedSampleData() {
   const y = new Date().getFullYear(), m = new Date().getMonth();
@@ -1516,8 +1518,6 @@ function renderYearSummary() {
         ${worstMonth && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Toughest Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
       </div>` : ''}`;
 }
-
-let forecastAiCache = {};
 
 function runMonteCarlo() {
   const SIMS = 1000, MONTHS = 12;
@@ -2166,7 +2166,6 @@ function onboardSkip() {
 }
 
 // ── AI Insight Card ──────────────────────────────────────────────────
-let insightCache = {};
 
 function insightLogoSVG() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="18" height="18"><path d="M4 23V9L10.5 18.5L17 9V23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="18,23 20,19 22,22 25,15 27,18 29,8" stroke="#2ABF87" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="29" cy="8" r="2.5" fill="#2ABF87"/></svg>`;
