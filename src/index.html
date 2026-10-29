@@ -476,7 +476,7 @@ select.form-control { cursor: pointer; }
 /* ─── AI Chat ───────────────────────────────────────────────────────── */
 .chat-fab {
   position: fixed; bottom: 28px; right: 20px; z-index: 300;
-  height: 46px; padding: 0 18px 0 14px; border-radius: 99px; border: none; cursor: pointer;
+  height: 46px; padding: 0 18px 0 14px; border-radius: 99px; border: none; cursor: grab;
   background: linear-gradient(135deg, #0D1B33 0%, #1a3a5c 100%);
   box-shadow: 0 4px 20px rgba(42,191,135,.35), 0 2px 8px rgba(0,0,0,.25);
   display: flex; align-items: center; gap: 8px;
@@ -2215,6 +2215,74 @@ function renderInsight(text) {
 let chatOpen = false;
 let chatHistory = [];
 let chatBusy = false;
+
+// ── FAB DRAG ──────────────────────────────────────────────
+(function() {
+  const FAB_KEY = 'moni_fab_pos';
+  let dragging = false, startX, startY, origRight, origBottom, moved;
+
+  function initFabPos() {
+    const fab = document.getElementById('chat-fab');
+    if (!fab) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(FAB_KEY));
+      if (saved) { fab.style.right = saved.right; fab.style.bottom = saved.bottom; fab.style.left = ''; fab.style.top = ''; }
+    } catch(e) {}
+  }
+
+  function onDown(e) {
+    const fab = document.getElementById('chat-fab');
+    dragging = true; moved = false;
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX; startY = touch.clientY;
+    const rect = fab.getBoundingClientRect();
+    origRight = window.innerWidth - rect.right;
+    origBottom = window.innerHeight - rect.bottom;
+    fab.style.cursor = 'grabbing';
+    fab.style.transition = 'none';
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - startX, dy = touch.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (!moved) return;
+    const fab = document.getElementById('chat-fab');
+    let newRight = Math.max(8, Math.min(window.innerWidth - fab.offsetWidth - 8, origRight - dx));
+    let newBottom = Math.max(8, Math.min(window.innerHeight - fab.offsetHeight - 8, origBottom - dy));
+    fab.style.right = newRight + 'px';
+    fab.style.bottom = newBottom + 'px';
+    fab.style.left = ''; fab.style.top = '';
+    e.preventDefault();
+  }
+
+  function onUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    const fab = document.getElementById('chat-fab');
+    fab.style.cursor = 'grab';
+    fab.style.transition = '';
+    if (moved) {
+      try { localStorage.setItem(FAB_KEY, JSON.stringify({ right: fab.style.right, bottom: fab.style.bottom })); } catch(e) {}
+      // swallow click so chat doesn't open after drag
+      fab.addEventListener('click', e => e.stopImmediatePropagation(), { once: true, capture: true });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initFabPos();
+    const fab = document.getElementById('chat-fab');
+    if (!fab) return;
+    fab.addEventListener('mousedown', onDown);
+    fab.addEventListener('touchstart', onDown, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
+  });
+})();
 
 function toggleChat() {
   chatOpen = !chatOpen;
