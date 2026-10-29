@@ -301,6 +301,14 @@ select.form-control { cursor: pointer; }
 .empty-icon { font-size: 36px; margin-bottom: 12px; }
 .empty-text { font-size: 13.5px; }
 
+/* Tooltips */
+.tip { position: relative; display: inline-flex; align-items: center; }
+.tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--fg-3); color: var(--fg-3); font-size: 9px; font-weight: 700; cursor: help; margin-left: 4px; flex-shrink: 0; line-height: 1; font-style: normal; }
+.tip-box { visibility: hidden; opacity: 0; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--fg-1); color: var(--card); font-size: 12px; font-weight: 400; line-height: 1.5; padding: 8px 12px; border-radius: 8px; width: 200px; text-align: left; pointer-events: none; transition: opacity .15s; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+.tip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--fg-1); }
+.tip:hover .tip-box, .tip.active .tip-box { visibility: visible; opacity: 1; }
+@media (max-width: 700px) { .tip-box { left: auto; right: 0; transform: none; } .tip-box::after { left: auto; right: 16px; transform: none; } }
+
 .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .chip { padding: 5px 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--fg-2); transition: all .15s; }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
@@ -1386,10 +1394,10 @@ function renderTiles(){
   const prevExp=totalExpense(txnsForMonth(pm,py));
   const chg=prevExp>0?(((exp-prevExp)/prevExp)*100).toFixed(0):null;
   document.getElementById('tiles-summary').innerHTML=`
-    <div class="tile tile-income tile-link" onclick="goToFilter('income')"><div class="tile-label">Income</div><div class="tile-value">${fmt(inc)}</div><div class="tile-sub">${txns.filter(t=>t.type==='income').length} transactions ›</div></div>
-    <div class="tile tile-expense tile-link" onclick="goToFilter('expense')"><div class="tile-label">Expenses</div><div class="tile-value">${fmt(exp)}</div><div class="tile-sub">${chg!==null?(chg>0?'▲':'▼')+Math.abs(chg)+'% vs last month ›':txns.filter(t=>t.type==='expense').length+' transactions ›'}</div></div>
-    <div class="tile tile-net tile-link" onclick="goToFilter('all')"><div class="tile-label">Net Cash Flow</div><div class="tile-value" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div><div class="tile-sub">${net>=0?'Surplus':'Deficit'} · View all ›</div></div>
-    <div class="tile tile-link" onclick="goToFilter('all')"><div class="tile-label">Savings Rate</div><div class="tile-value" style="color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'}">${rate}%</div><div class="tile-sub">${rate>=20?'On track ✓':'Below 20% goal'} ›</div></div>`;
+    <div class="tile tile-income tile-link" onclick="goToFilter('income')"><div class="tile-label">Income${tip('All money received this month — salary, freelance, investments, gifts.')}</div><div class="tile-value">${fmt(inc)}</div><div class="tile-sub">${txns.filter(t=>t.type==='income').length} transactions ›</div></div>
+    <div class="tile tile-expense tile-link" onclick="goToFilter('expense')"><div class="tile-label">Expenses${tip('All money spent this month across every category.')}</div><div class="tile-value">${fmt(exp)}</div><div class="tile-sub">${chg!==null?(chg>0?'▲':'▼')+Math.abs(chg)+'% vs last month ›':txns.filter(t=>t.type==='expense').length+' transactions ›'}</div></div>
+    <div class="tile tile-net tile-link" onclick="goToFilter('all')"><div class="tile-label">Net Cash Flow${tip('Income minus expenses. Positive = surplus, negative = you spent more than you earned.')}</div><div class="tile-value" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div><div class="tile-sub">${net>=0?'Surplus':'Deficit'} · View all ›</div></div>
+    <div class="tile tile-link" onclick="goToFilter('all')"><div class="tile-label">Savings Rate${tip('% of income left after expenses. Aim for 20%+. The higher the better.')}</div><div class="tile-value" style="color:${rate>=20?'var(--income)':rate>=10?'var(--warn)':'var(--expense)'}">${rate}%</div><div class="tile-sub">${rate>=20?'On track ✓':'Below 20% goal'} ›</div></div>`;
   // fire confetti once when savings goal is first hit this month
   const goalPct = state.onboardSavingsGoal || 20;
   const monthKey = `confetti-${state.currentMonth}-${state.currentYear}`;
@@ -1561,7 +1569,7 @@ function runMonteCarlo() {
   }
 
   metaEl.innerHTML = `
-    <div class="forecast-prob">Probability of meeting your savings goal: <strong>${(probMeet*100).toFixed(0)}%</strong></div>
+    <div class="forecast-prob">Probability of meeting your savings goal${tip('Based on 1,000 simulated futures using your income & spending history. Higher % = more likely you hit your goal.')} <strong>${(probMeet*100).toFixed(0)}%</strong></div>
     <div class="forecast-meta">
       <span class="forecast-chip p10">Pessimistic: ${fmt(p50[11]-p10[11])} less</span>
       <span class="forecast-chip p50">Likely: ${fmt(p50[11])}</span>
@@ -1754,6 +1762,13 @@ function confirmSavings(){
 }
 function skipSavings(){document.getElementById('pyf-modal').hidden=true;}
 
+// ── TOOLTIPS ──────────────────────────────────────────────
+function tip(text) {
+  return `<span class="tip"><i class="tip-icon" onclick="this.parentElement.classList.toggle('active')" ontouchstart="this.parentElement.classList.toggle('active');event.stopPropagation()">i</i><span class="tip-box">${text}</span></span>`;
+}
+// close tooltips on outside tap
+document.addEventListener('click', () => document.querySelectorAll('.tip.active').forEach(t => t.classList.remove('active')));
+
 // ── CONFETTI ──────────────────────────────────────────────
 function launchConfetti(duration=2800) {
   const canvas = document.createElement('canvas');
@@ -1881,7 +1896,7 @@ function renderDebt() {
       <div class="debt-meta">
         <span>📅 ${payoffStr}</span>
         <span>💸 ${fmt(d.payment)}/mo</span>
-        ${d.rate > 0 ? `<span>📊 ${d.rate}% APR</span>` : ''}
+        ${d.rate > 0 ? `<span>📊 ${d.rate}% APR${tip('Annual Percentage Rate — the yearly interest on this debt. Higher = more expensive. Paying off high-APR debt first saves the most money.')}</span>` : ''}
         ${totalInterest > 0 ? `<span>⚠️ ${fmt(totalInterest)} interest</span>` : ''}
       </div>
       <div class="debt-progress-wrap"><div class="debt-progress-bar" style="width:${pct}%"></div></div>
