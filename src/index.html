@@ -1241,7 +1241,7 @@ function startFresh() {
   showConfirm('Start fresh? This will delete all your data and restart setup.', () => {
     state.transactions=[]; state.budgets={}; state.debts=[]; state.isDemo=false; state.demoAfterOnboard=false; state.onboardSavingsGoal=null;
     saveState(); updateDemoBanner(); renderAll(); insightCache={}; forecastAiCache={};
-    try{localStorage.removeItem('moni_onboarded');}catch(e){}
+    try{localStorage.removeItem('moni_onboarded'); localStorage.setItem('moni_skip_demo','1');}catch(e){}
     const sel = document.getElementById('onboard-currency');
     sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code==='USD'?'selected':''}>${c.symbol} ${c.label} (${c.code})</option>`).join('');
     document.querySelectorAll('[id^="onboard-step-"]').forEach(el => el.hidden = true);
@@ -2149,34 +2149,35 @@ function onboardNext(step) {
 function onboardFinish() {
   const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
   const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
+  const skipDemo = localStorage.getItem('moni_skip_demo') === '1';
   state.onboardSavingsGoal = savPct;
-  // Load demo data so the dashboard isn't empty
-  seedSampleData();
-  // Replace demo income amounts with user's actual income
+  if (!skipDemo) {
+    seedSampleData();
+    state.isDemo = true;
+    state.demoAfterOnboard = true;
+  }
   if (inc > 0) {
     const today = new Date().toISOString().split('T')[0];
     state.transactions.push({ id: uid(), type: 'income', name: 'Monthly Income', category: 'Salary', amount: inc, date: today, note: '', repeat: 'monthly', tag: '' });
     state.budgets['Savings'] = Math.round(inc * savPct / 100);
   }
-  // isDemo=true so banner shows, but mark as "onboarded demo" so we know to clear on first real txn
-  state.isDemo = true;
-  state.demoAfterOnboard = true;
   saveState();
-  localStorage.setItem('moni_onboarded', '1');
+  try { localStorage.setItem('moni_onboarded', '1'); localStorage.removeItem('moni_skip_demo'); } catch(e) {}
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
   loadInsight();
   track('onboarding_complete', { currency: state.currency || 'USD', savings_goal: savPct });
-  if (inc > 0) showPYF(inc, new Date().toISOString().split('T')[0]);
+  if (inc > 0 && !skipDemo) showPYF(inc, new Date().toISOString().split('T')[0]);
   toast('Welcome to Moni! 🎉');
 }
 
 function onboardSkip() {
-  seedSampleData(); // loads demo data + sets isDemo=true
+  const skipDemo = localStorage.getItem('moni_skip_demo') === '1';
+  if (!skipDemo) seedSampleData();
   track('onboarding_skipped');
   saveState();
-  localStorage.setItem('moni_onboarded', '1');
+  try { localStorage.setItem('moni_onboarded', '1'); localStorage.removeItem('moni_skip_demo'); } catch(e) {}
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
