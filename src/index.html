@@ -1867,22 +1867,10 @@ function launchConfetti(duration=2800) {
 let payingDebtId = null;
 
 function openDebtModal() {
+  editingDebtId = null;
   ['debt-name','debt-balance','debt-payment','debt-rate'].forEach(id => document.getElementById(id).value = '');
+  document.querySelector('#debt-modal .modal-title').textContent = 'Add Debt';
   document.getElementById('debt-modal').hidden = false;
-}
-
-function saveDebt() {
-  const name = document.getElementById('debt-name').value.trim();
-  const balance = parseFloat(document.getElementById('debt-balance').value) || 0;
-  const payment = parseFloat(document.getElementById('debt-payment').value) || 0;
-  const rate = parseFloat(document.getElementById('debt-rate').value) || 0;
-  if (!name || balance <= 0 || payment <= 0) { toast('Fill in name, balance and payment'); return; }
-  state.debts.push({ id: uid(), name, originalBalance: balance, balance, payment, rate, paidTotal: 0 });
-  track('debt_added', { balance, rate_has_interest: rate > 0 });
-  saveState();
-  closeModal('debt-modal');
-  renderDebt();
-  toast('Debt added!');
 }
 
 function openDebtPayModal(id) {
@@ -1913,11 +1901,49 @@ function confirmDebtPayment() {
 }
 
 function deleteDebt(id) {
-  if (!confirm('Remove this debt?')) return;
-  state.debts = state.debts.filter(d => d.id !== id);
+  showConfirm('Remove this debt?', () => {
+    state.debts = state.debts.filter(d => d.id !== id);
+    saveState();
+    renderDebt();
+    toast('Removed');
+  });
+}
+
+let editingDebtId = null;
+function editDebt(id) {
+  const d = state.debts.find(x => x.id === id);
+  if (!d) return;
+  editingDebtId = id;
+  document.getElementById('debt-name').value = d.name;
+  document.getElementById('debt-balance').value = d.balance;
+  document.getElementById('debt-payment').value = d.payment;
+  document.getElementById('debt-rate').value = d.rate || '';
+  document.querySelector('#debt-modal .modal-title').textContent = 'Edit Debt';
+  document.getElementById('debt-modal').hidden = false;
+}
+
+function saveDebt() {
+  const name = document.getElementById('debt-name').value.trim();
+  const balance = parseFloat(document.getElementById('debt-balance').value);
+  const payment = parseFloat(document.getElementById('debt-payment').value);
+  const rate = parseFloat(document.getElementById('debt-rate').value) || 0;
+  if (!name) { toast('Enter a debt name'); return; }
+  if (!balance || balance <= 0) { toast('Enter the balance owed'); return; }
+  if (!payment || payment <= 0) { toast('Enter a monthly payment'); return; }
+  if (editingDebtId) {
+    const d = state.debts.find(x => x.id === editingDebtId);
+    if (d) { d.name = name; d.balance = balance; d.originalBalance = Math.max(d.originalBalance || balance, balance); d.payment = payment; d.rate = rate; }
+    editingDebtId = null;
+    document.querySelector('#debt-modal .modal-title').textContent = 'Add Debt';
+    toast('Debt updated!');
+  } else {
+    state.debts.push({ id: uid(), name, originalBalance: balance, balance, payment, rate, paidTotal: 0 });
+    track('debt_added', { balance, rate_has_interest: rate > 0 });
+    toast('Debt added!');
+  }
   saveState();
+  closeModal('debt-modal');
   renderDebt();
-  toast('Removed');
 }
 
 function debtPayoffMonths(balance, payment, rate) {
@@ -1954,6 +1980,7 @@ function renderDebt() {
       <div class="debt-progress-wrap"><div class="debt-progress-bar" style="width:${pct}%"></div></div>
       <div class="debt-actions">
         <button class="btn btn-primary btn-sm debt-pay-btn" onclick="openDebtPayModal('${d.id}')">Log Payment</button>
+        <button class="btn btn-ghost btn-sm" onclick="editDebt('${d.id}')">Edit</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteDebt('${d.id}')">Remove</button>
       </div>
     </div>`;
