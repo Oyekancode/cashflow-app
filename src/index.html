@@ -1999,11 +1999,14 @@ async function loadDebtAI() {
   const card = document.getElementById('debt-ai-card');
   const content = document.getElementById('debt-ai-content');
   card.hidden = false;
-  content.innerHTML = '<span style="opacity:.5">Moni is thinking...</span>';
   const summary = state.debts.map(d => {
     const months = debtPayoffMonths(d.balance, d.payment, d.rate);
     return `${d.name}: ${fmt(d.balance)} remaining, ${fmt(d.payment)}/month, ${months === Infinity ? 'payment too low' : months + ' months to payoff'}${d.rate > 0 ? ', ' + d.rate + '% APR' : ''}`;
   }).join('\n');
+  // cache key based on actual debt data so it only refreshes when data changes
+  const cacheKey = 'debt:' + state.debts.map(d => `${d.id}:${d.balance}:${d.payment}:${d.rate}`).join('|');
+  if (forecastAiCache[cacheKey]) { content.textContent = forecastAiCache[cacheKey]; return; }
+  content.innerHTML = '<span style="opacity:.5">Moni is thinking...</span>';
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
@@ -2014,7 +2017,7 @@ async function loadDebtAI() {
       })
     });
     const data = await res.json();
-    content.textContent = data.reply || '';
+    if (data.reply) { forecastAiCache[cacheKey] = data.reply; content.textContent = data.reply; }
   } catch(e) {
     card.hidden = true;
   }
