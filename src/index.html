@@ -1239,9 +1239,9 @@ function goToFilter(filter){
 }
 function startFresh() {
   showConfirm('Start fresh? This will delete all your data and restart setup.', () => {
-    state.transactions=[]; state.budgets={}; state.debts=[]; state.isDemo=false; state.demoAfterOnboard=false; state.onboardSavingsGoal=null;
+    state.transactions=[]; state.budgets={}; state.debts=[]; state.isDemo=false; state.demoAfterOnboard=false; state.onboardSavingsGoal=null; state.skipDemo=true;
     saveState(); updateDemoBanner(); renderAll(); insightCache={}; forecastAiCache={};
-    try{localStorage.removeItem('moni_onboarded'); localStorage.setItem('moni_skip_demo','1');}catch(e){}
+    try{localStorage.removeItem('moni_onboarded');}catch(e){}
     const sel = document.getElementById('onboard-currency');
     sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}" ${c.code==='USD'?'selected':''}>${c.symbol} ${c.label} (${c.code})</option>`).join('');
     document.querySelectorAll('[id^="onboard-step-"]').forEach(el => el.hidden = true);
@@ -2149,8 +2149,9 @@ function onboardNext(step) {
 function onboardFinish() {
   const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
   const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
-  const skipDemo = localStorage.getItem('moni_skip_demo') === '1';
+  const skipDemo = !!state.skipDemo;
   state.onboardSavingsGoal = savPct;
+  state.skipDemo = false;
   if (!skipDemo) {
     seedSampleData();
     state.isDemo = true;
@@ -2162,7 +2163,7 @@ function onboardFinish() {
     state.budgets['Savings'] = Math.round(inc * savPct / 100);
   }
   saveState();
-  try { localStorage.setItem('moni_onboarded', '1'); localStorage.removeItem('moni_skip_demo'); } catch(e) {}
+  try { localStorage.setItem('moni_onboarded', '1'); } catch(e) {}
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
@@ -2173,11 +2174,12 @@ function onboardFinish() {
 }
 
 function onboardSkip() {
-  const skipDemo = localStorage.getItem('moni_skip_demo') === '1';
+  const skipDemo = !!state.skipDemo;
+  state.skipDemo = false;
   if (!skipDemo) seedSampleData();
   track('onboarding_skipped');
   saveState();
-  try { localStorage.setItem('moni_onboarded', '1'); localStorage.removeItem('moni_skip_demo'); } catch(e) {}
+  try { localStorage.setItem('moni_onboarded', '1'); } catch(e) {}
   document.getElementById('onboard-overlay').hidden = true;
   updateDemoBanner();
   renderAll();
