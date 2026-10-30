@@ -1889,14 +1889,20 @@ function confirmDebtPayment() {
   if (!debt) return;
   debt.balance = Math.max(0, debt.balance - amt);
   debt.paidTotal = (debt.paidTotal || 0) + amt;
+  // auto-create expense transaction so cash flow reflects the payment
+  const today = new Date().toISOString().split('T')[0];
+  if (!state.categories.expense.find(c => c.name === 'Debt Payment')) {
+    state.categories.expense.push({emoji:'💳', name:'Debt Payment'});
+  }
+  state.transactions.push({ id: uid(), type: 'expense', name: `${debt.name} payment`, category: 'Debt Payment', amount: amt, date: today, note: '', repeat: 'none', tag: '' });
   saveState();
   closeModal('debt-pay-modal');
-  renderDebt();
+  renderAll();
   if (debt.balance === 0) {
     launchConfetti(3500);
     toast('🎉 Debt cleared! Amazing work!');
   } else {
-    toast('Payment logged!');
+    toast('Payment logged & added to expenses!');
   }
 }
 
