@@ -2134,7 +2134,7 @@ function onboardNext(step) {
   }
   if (step === 4) {
     const sav = parseFloat(document.getElementById('onboard-savings').value);
-    if (sav === '' || sav < 0 || sav > 100) { toast('Enter a savings goal between 0–100%'); return; }
+    if (isNaN(sav) || sav < 0 || sav > 100) { toast('Enter a savings goal between 0–100%'); return; }
     const inc = parseFloat(document.getElementById('onboard-income').value) || 0;
     const savPct = parseFloat(document.getElementById('onboard-savings').value) || 20;
     const goal = Math.round(inc * savPct / 100);
