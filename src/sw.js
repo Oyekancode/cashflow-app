@@ -1,4 +1,4 @@
-const CACHE = 'moni-v6';
+const CACHE = 'moni-v7';
 const ASSETS = ['/favicon.svg', '/manifest.json', '/og-image.png'];
 
 self.addEventListener('install', e => {
