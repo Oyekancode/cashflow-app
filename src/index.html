@@ -1252,15 +1252,16 @@ function startFresh() {
 function showConfirm(msg, onYes) {
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.5);';
-  el.innerHTML = `<div style="background:var(--bg);border-radius:16px;padding:28px 24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);border:1px solid var(--border);">
+  el.innerHTML = `<div onclick="event.stopPropagation()" style="background:var(--bg);border-radius:16px;padding:28px 24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);border:1px solid var(--border);">
     <p style="margin:0 0 20px;font-size:15px;color:var(--fg-1);line-height:1.6;">${msg}</p>
     <div style="display:flex;gap:10px;">
-      <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:none;font-size:14px;font-weight:600;cursor:pointer;color:var(--fg-2);">Cancel</button>
+      <button id="_confirm_no" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:none;font-size:14px;font-weight:600;cursor:pointer;color:var(--fg-2);">Cancel</button>
       <button id="_confirm_yes" style="flex:1;padding:11px;border-radius:10px;border:none;background:#EF476F;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">Yes, clear it</button>
     </div>
   </div>`;
   document.body.appendChild(el);
   el.querySelector('#_confirm_yes').onclick = () => { el.remove(); onYes(); };
+  el.querySelector('#_confirm_no').onclick = () => el.remove();
   el.onclick = e => { if (e.target === el) el.remove(); };
 }
 function uid() { return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
