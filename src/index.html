@@ -1168,7 +1168,7 @@ let state = loadState() || {
     expense: [
       {emoji:'🛒',name:'Groceries'},{emoji:'🏠',name:'Rent'},{emoji:'⚡',name:'Utilities'},
       {emoji:'🚗',name:'Transport'},{emoji:'🍽️',name:'Dining'},{emoji:'🏥',name:'Health'},
-      {emoji:'🎬',name:'Entertainment'},{emoji:'👗',name:'Clothing'},{emoji:'📱',name:'Subscriptions'},{emoji:'💰',name:'Savings'},{emoji:'📦',name:'Other'},
+      {emoji:'🎬',name:'Entertainment'},{emoji:'👗',name:'Clothing'},{emoji:'📱',name:'Subscriptions'},{emoji:'🛡️',name:'Insurance'},{emoji:'💰',name:'Savings'},{emoji:'📦',name:'Other'},
     ],
     income: [
       {emoji:'💼',name:'Salary'},{emoji:'💡',name:'Freelance'},{emoji:'📈',name:'Investment'},{emoji:'🎁',name:'Gift'},{emoji:'💰',name:'Other Income'},
@@ -2072,6 +2072,13 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 try{const old=localStorage.getItem('cashflow_v3');if(old&&!localStorage.getItem('moni_v1')){localStorage.setItem('moni_v1',old);}localStorage.removeItem('cashflow_v3');}catch(e){}
 // ensure debts array exists for existing users
 if(!state.debts) state.debts=[];
+// ensure Insurance category exists for existing users
+if(state.categories && state.categories.expense && !state.categories.expense.find(c=>c.name==='Insurance')){
+  const otherIdx = state.categories.expense.findIndex(c=>c.name==='Other');
+  if(otherIdx > -1) state.categories.expense.splice(otherIdx, 0, {emoji:'🛡️', name:'Insurance'});
+  else state.categories.expense.push({emoji:'🛡️', name:'Insurance'});
+  saveState();
+}
 
 // Restore saved theme
 try{const t=localStorage.getItem('cf_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
