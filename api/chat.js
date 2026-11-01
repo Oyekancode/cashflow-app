@@ -43,11 +43,12 @@ Give practical, concise advice. Reference specific numbers from their data when 
     }
 
     const data = await response.json();
-    if (!data.content || !data.content[0] || !data.content[0].text) {
+    const textBlock = Array.isArray(data.content) && data.content.find(b => b.type === 'text');
+    if (!textBlock || !textBlock.text) {
       console.error('Unexpected Anthropic response:', JSON.stringify(data));
       return res.status(502).json({ error: 'AI service error' });
     }
-    return res.json({ reply: data.content[0].text });
+    return res.json({ reply: textBlock.text });
   } catch (e) {
     console.error('Chat handler error:', e);
     return res.status(500).json({ error: 'Server error' });
