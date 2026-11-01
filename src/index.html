@@ -1537,7 +1537,7 @@ function renderYearSummary() {
       </div>
       ${bestMonth||worstMonth ? `<div class="year-best-worst">
         ${bestMonth ? `<div class="year-bw"><div class="year-bw-label">🏆 Best Month</div><div class="year-bw-val" style="color:${bestNet>=0?'var(--income)':'var(--expense)'}">${bestMonth} · ${bestNet>=0?'+':''}${fmt(bestNet)}</div></div>` : ''}
-        ${worstMonth && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Worst Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
+        ${worstMonth && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Toughest Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
       </div>` : ''}`;
 }
 
