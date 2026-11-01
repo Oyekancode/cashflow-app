@@ -37,10 +37,14 @@ Give practical, concise advice. Reference specific numbers from their data when 
     if (!response.ok) {
       const text = await response.text();
       console.error('Anthropic API error:', response.status, text);
-      return res.status(502).json({ error: 'AI service error', status: response.status });
+      return res.status(502).json({ error: 'AI service error', status: response.status, detail: text });
     }
 
     const data = await response.json();
+    if (!data.content || !data.content[0]) {
+      console.error('Unexpected response shape:', JSON.stringify(data));
+      return res.status(502).json({ error: 'Unexpected response', detail: JSON.stringify(data) });
+    }
     return res.json({ reply: data.content[0].text });
   } catch (e) {
     console.error('Chat handler error:', e);
