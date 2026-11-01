@@ -1392,7 +1392,9 @@ const BRAND_DOMAINS={
 function getBrandLogo(name){
   const key=name.toLowerCase().trim();
   for(const [brand,domain] of Object.entries(BRAND_DOMAINS)){
-    if(key===brand||key.includes(brand)||brand.includes(key))
+    const exact=key===brand;
+    const wordMatch=brand.length>2&&(key.includes(brand)||brand.includes(key));
+    if(exact||wordMatch)
       return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   }
   return null;
