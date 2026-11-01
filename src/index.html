@@ -1536,8 +1536,8 @@ function renderYearSummary() {
         ${topCat ? `<div class="year-stat" style="grid-column:span 2"><div class="year-stat-label">Biggest Expense Category</div><div class="year-stat-val" style="font-size:15px">${catEmoji(topCat[0])} ${topCat[0]} · ${fmt(topCat[1])}</div></div>` : ''}
       </div>
       ${bestMonth||worstMonth ? `<div class="year-best-worst">
-        ${bestMonth && bestNet > 0 ? `<div class="year-bw"><div class="year-bw-label">🏆 Best Month</div><div class="year-bw-val" style="color:var(--income)">${bestMonth} · +${fmt(bestNet)}</div></div>` : ''}
-        ${worstMonth && worstNet < 0 && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Toughest Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
+        ${bestMonth ? `<div class="year-bw"><div class="year-bw-label">🏆 Best Month</div><div class="year-bw-val" style="color:${bestNet>=0?'var(--income)':'var(--warn)'}">${bestMonth} · ${bestNet>=0?'+':''}${fmt(bestNet)}</div></div>` : ''}
+        ${worstMonth && worstMonth !== bestMonth ? `<div class="year-bw"><div class="year-bw-label">📉 Toughest Month</div><div class="year-bw-val" style="color:var(--expense)">${worstMonth} · ${fmt(worstNet)}</div></div>` : ''}
       </div>` : ''}`;
 }
 
