@@ -41,8 +41,8 @@ Give practical, concise advice. Reference specific numbers from their data when 
     }
 
     const data = await response.json();
-    if (!data.content || !data.content[0]) {
-      console.error('Unexpected response shape:', JSON.stringify(data));
+    console.log('Anthropic response:', JSON.stringify(data));
+    if (!data.content || !data.content[0] || !data.content[0].text) {
       return res.status(502).json({ error: 'Unexpected response', detail: JSON.stringify(data) });
     }
     return res.json({ reply: data.content[0].text });
