@@ -121,6 +121,8 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; }
 [hidden] { display: none !important; }
+button, a { touch-action: manipulation; }
+input, textarea, select { touch-action: manipulation; }
 html, body { height: 100%; }
 body {
   font-family: var(--font);
