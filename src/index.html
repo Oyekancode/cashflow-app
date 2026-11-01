@@ -2367,7 +2367,7 @@ async function sendChat() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: chatHistory, context: buildContext() }),
+      body: JSON.stringify({ messages: chatHistory.slice(-6), context: buildContext() }),
     });
     const data = await res.json();
     hideTyping();
