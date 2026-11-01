@@ -2375,7 +2375,8 @@ async function sendChat() {
       chatHistory.push({ role: 'assistant', content: data.reply });
       appendChatMsg('ai', data.reply);
     } else {
-      appendChatMsg('ai', `Debug: ${JSON.stringify(data)}`);
+      console.error('Chat API error:', JSON.stringify(data));
+      appendChatMsg('ai', 'Something went wrong. Please try again in a moment.');
     }
   } catch (e) {
     hideTyping();

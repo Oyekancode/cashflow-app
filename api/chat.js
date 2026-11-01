@@ -6,7 +6,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { messages, context } = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) { return res.status(400).json({ error: 'Invalid JSON body' }); } }
+  const { messages, context } = body || {};
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'Missing messages' });
   }
@@ -37,13 +39,13 @@ Give practical, concise advice. Reference specific numbers from their data when 
     if (!response.ok) {
       const text = await response.text();
       console.error('Anthropic API error:', response.status, text);
-      return res.status(502).json({ error: 'AI service error', status: response.status, detail: text });
+      return res.status(502).json({ error: 'AI service error' });
     }
 
     const data = await response.json();
-    console.log('Anthropic response:', JSON.stringify(data));
     if (!data.content || !data.content[0] || !data.content[0].text) {
-      return res.status(502).json({ error: 'Unexpected response', detail: JSON.stringify(data) });
+      console.error('Unexpected Anthropic response:', JSON.stringify(data));
+      return res.status(502).json({ error: 'AI service error' });
     }
     return res.json({ reply: data.content[0].text });
   } catch (e) {
