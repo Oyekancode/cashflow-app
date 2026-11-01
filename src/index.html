@@ -1346,7 +1346,7 @@ function fmtFull(n) {
   try { return new Intl.NumberFormat(c.locale,{style:'currency',currency:c.code}).format(n); }
   catch(e) { return c.symbol + n.toLocaleString(); }
 }
-function txnsForMonth(m,y){return state.transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});}
+function txnsForMonth(m,y){return state.transactions.filter(t=>{const [yr,mo]=t.date.split('-').map(Number);return (mo-1)===m&&yr===y;});}
 function totalIncome(t){return t.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);}
 function totalExpense(t){return t.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);}
 const palette=['#3B6FE8','#1A9E6E','#D94F4F','#E8943B','#8B5CF6','#0EA5E9','#EC4899','#10B981','#F59E0B','#6366F1'];
@@ -1413,7 +1413,7 @@ function setPickerTag(pickerId, hiddenId, tag) {
 }
 function catColor(name,idx){if(idx!==undefined)return palette[idx%palette.length];const i=state.categories.expense.map(c=>c.name).indexOf(name);return palette[i<0?0:i%palette.length];}
 function catEmoji(name){const c=[...state.categories.expense,...state.categories.income].find(x=>x.name===name);return c?c.emoji:'💸';}
-function fmtDate(s){const d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtDate(s){const [,mo,dy]=s.split('-').map(Number);return new Date(2000,mo-1,dy).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
 
 function isDarkNow(){const t=document.documentElement.getAttribute('data-theme');return t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme:dark)').matches);}
 function updateThemeBtn(){
@@ -1519,7 +1519,7 @@ function renderYearSummary() {
   const net = totalInc - totalExp;
   const rate = totalInc > 0 ? ((net / totalInc) * 100).toFixed(1) : 0;
   const spent = {};
-  state.transactions.filter(t => new Date(t.date).getFullYear() === yr && t.type === 'expense')
+  state.transactions.filter(t => Number(t.date.split('-')[0]) === yr && t.type === 'expense')
     .forEach(t => { spent[t.category] = (spent[t.category] || 0) + t.amount; });
   const topCat = Object.entries(spent).sort((a,b) => b[1]-a[1])[0];
 
