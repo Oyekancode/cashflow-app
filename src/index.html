@@ -2310,7 +2310,7 @@ let chatBusy = false;
     if (!dragging) return;
     const touch = e.touches ? e.touches[0] : e;
     const dx = touch.clientX - startX, dy = touch.clientY - startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (Math.abs(dx) > 12 || Math.abs(dy) > 12) moved = true;
     if (!moved) return;
     const fab = document.getElementById('chat-fab');
     let newRight = Math.max(8, Math.min(window.innerWidth - fab.offsetWidth - 8, origRight - dx));
@@ -2329,8 +2329,8 @@ let chatBusy = false;
     fab.style.transition = '';
     if (moved) {
       try { localStorage.setItem(FAB_KEY, JSON.stringify({ right: fab.style.right, bottom: fab.style.bottom })); } catch(e) {}
-      // swallow click so chat doesn't open after drag
-      fab.addEventListener('click', e => e.stopImmediatePropagation(), { once: true, capture: true });
+      // prevent the drag-end from triggering toggleChat
+      setTimeout(() => { moved = false; }, 300);
     }
   }
 
@@ -2348,6 +2348,7 @@ let chatBusy = false;
 })();
 
 function toggleChat() {
+  if (moved) return;
   chatOpen = !chatOpen;
   const panel = document.getElementById('chat-panel');
   panel.hidden = !chatOpen;
