@@ -844,8 +844,14 @@ select.form-control { cursor: pointer; }
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Target savings rate (%)</label>
-        <input type="number" class="form-input" id="savings-goal-input" min="1" max="100" placeholder="e.g. 20">
+        <label class="form-label">Target savings rate</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" class="form-input" id="savings-goal-pct" min="1" max="100" placeholder="%" oninput="syncSavingsGoal('pct')" style="flex:1;">
+          <span style="color:var(--fg-3);font-weight:600;">%</span>
+          <span style="color:var(--fg-3);">=</span>
+          <input type="number" class="form-input" id="savings-goal-amt" min="0" placeholder="amount" oninput="syncSavingsGoal('amt')" style="flex:1;">
+        </div>
+        <div style="font-size:11px;color:var(--fg-3);margin-top:6px;">Based on this month's income — edit either one</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2049,9 +2055,10 @@ function deleteTxn(id){if(!confirm('Delete this transaction?'))return;state.tran
 function openBudgetModal(){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value='';document.getElementById('budget-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
 function editBudgetItem(cat,limit){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}" ${c.name===cat?'selected':''}>${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value=limit;document.getElementById('budget-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
 function deleteBudget(cat){showConfirm(`Remove budget goal for ${cat}?`,()=>{delete state.budgets[cat];saveState();renderBudget();toast('Budget removed');});}
-function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;saveState();closeModal('budget-modal');renderBudget();toast('Goal saved!');}
-function openSavingsGoalModal(){document.getElementById('savings-goal-input').value=state.onboardSavingsGoal||20;document.getElementById('savings-goal-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
-function saveSavingsGoalEdit(){const val=parseFloat(document.getElementById('savings-goal-input').value);if(!val||val<=0||val>100){toast('Enter a % between 1 and 100');return;}state.onboardSavingsGoal=val;saveState();closeModal('savings-goal-modal');renderAll();toast('Savings goal updated!');}
+function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;if(cat==='Savings'){const inc=totalIncome(txnsForMonth(state.currentMonth,state.currentYear));if(inc>0)state.onboardSavingsGoal=parseFloat((limit/inc*100).toFixed(1));}saveState();closeModal('budget-modal');renderAll();toast('Goal saved!');}
+function openSavingsGoalModal(){const txns=txnsForMonth(state.currentMonth,state.currentYear),inc=totalIncome(txns),goal=state.onboardSavingsGoal||20;document.getElementById('savings-goal-pct').value=goal;document.getElementById('savings-goal-amt').value=inc>0?Math.round(inc*goal/100):'';document.getElementById('savings-goal-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
+function syncSavingsGoal(changed){const txns=txnsForMonth(state.currentMonth,state.currentYear),inc=totalIncome(txns);if(!inc)return;if(changed==='pct'){const pct=parseFloat(document.getElementById('savings-goal-pct').value)||0;document.getElementById('savings-goal-amt').value=Math.round(inc*pct/100);}else{const amt=parseFloat(document.getElementById('savings-goal-amt').value)||0;document.getElementById('savings-goal-pct').value=(amt/inc*100).toFixed(1);}}
+function saveSavingsGoalEdit(){const pct=parseFloat(document.getElementById('savings-goal-pct').value),amt=parseFloat(document.getElementById('savings-goal-amt').value);if(!pct||pct<=0||pct>100){toast('Enter a % between 1 and 100');return;}state.onboardSavingsGoal=pct;if(amt>0)state.budgets['Savings']=Math.round(amt);saveState();closeModal('savings-goal-modal');renderAll();toast('Savings goal updated!');}
 function openCatModal(type){currentCatType=type;document.getElementById('cat-modal-title').textContent=`New ${type==='expense'?'Expense':'Income'} Category`;document.getElementById('cat-emoji').value='';document.getElementById('cat-name').value='';document.getElementById('cat-modal').hidden=false;}
 function saveCategory(){const emoji=document.getElementById('cat-emoji').value.trim()||'📦',name=document.getElementById('cat-name').value.trim();if(!name){toast('Enter a name');return;}state.categories[currentCatType].push({emoji,name});saveState();closeModal('cat-modal');renderCategories();toast('Category added!');}
 function deleteCategory(type,name){state.categories[type]=state.categories[type].filter(c=>c.name!==name);saveState();renderCategories();toast('Removed');}
