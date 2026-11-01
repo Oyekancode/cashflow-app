@@ -835,31 +835,6 @@ select.form-control { cursor: pointer; }
   </div>
 </div>
 
-<!-- SAVINGS GOAL MODAL -->
-<div class="modal-overlay" id="savings-goal-modal" hidden>
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <span class="modal-title">Edit Savings Goal</span>
-      <button class="icon-btn" onclick="closeModal('savings-goal-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Target savings rate</label>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <input type="number" class="form-input" id="savings-goal-pct" min="1" max="100" placeholder="%" oninput="syncSavingsGoal('pct')" style="flex:1;">
-          <span style="color:var(--fg-3);font-weight:600;">%</span>
-          <span style="color:var(--fg-3);">=</span>
-          <input type="number" class="form-input" id="savings-goal-amt" min="0" placeholder="amount" oninput="syncSavingsGoal('amt')" style="flex:1;">
-        </div>
-        <div style="font-size:11px;color:var(--fg-3);margin-top:6px;">Based on this month's income — edit either one</div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('savings-goal-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSavingsGoalEdit()">Save</button>
-    </div>
-  </div>
-</div>
 
 <!-- BUDGET MODAL -->
 <div class="modal-overlay" id="budget-modal" hidden>
@@ -1451,10 +1426,11 @@ function toggleTheme(){const r=document.documentElement;if(isDarkNow()){r.setAtt
 
 function renderAll(){renderTiles();renderBarChart();renderDonut();renderRecentTxns();renderAllTxns();renderBudget();renderAnalytics();renderCategories();renderDebt();}
 
+function getGoalPct(inc){const sb=state.budgets['Savings'];return sb&&inc>0?Math.round(sb/inc*100):(state.onboardSavingsGoal||20);}
 function renderTiles(){
-  const goalPct = state.onboardSavingsGoal || 20;
   const txns=txnsForMonth(state.currentMonth,state.currentYear);
   const inc=totalIncome(txns),exp=totalExpense(txns),net=inc-exp,rate=inc>0?((net/inc)*100).toFixed(0):0;
+  const goalPct=getGoalPct(inc);
   const pm=state.currentMonth-1<0?11:state.currentMonth-1,py=state.currentMonth-1<0?state.currentYear-1:state.currentYear;
   const prevExp=totalExpense(txnsForMonth(pm,py));
   const chg=prevExp>0?(((exp-prevExp)/prevExp)*100).toFixed(0):null;
@@ -1512,8 +1488,8 @@ function renderBudget(){
   const goals=Object.entries(state.budgets);
   const el=document.getElementById('budget-list');
   el.innerHTML=goals.length?goals.map(([cat,limit])=>{const s=spent[cat]||0,pct=Math.min(s/limit*100,100),over=s>limit,warn=s>limit*.8&&!over,color=over?'var(--expense)':warn?'var(--warn)':'var(--income)';return`<div class="budget-item"><div class="budget-header"><div class="budget-cat">${catEmoji(cat)} ${cat}</div><div style="display:flex;align-items:center;gap:8px;"><div class="budget-amounts">${fmt(s)} / ${fmt(limit)}${over?' <span style="color:var(--expense);font-weight:700;">OVER</span>':''}</div><button onclick="editBudgetItem('${cat.replace(/'/g,"\\'")}',${limit})" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.6;padding:0;">✏️</button><button onclick="deleteBudget('${cat.replace(/'/g,"\\'")}');" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.6;padding:0;">🗑️</button></div></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div></div>`;}).join(''):'<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">No budget goals yet</div></div>';
-  const goal=state.onboardSavingsGoal||20,inc=totalIncome(txns),exp=totalExpense(txns),net=inc-exp,rate=inc>0?(net/inc)*100:0,pct=Math.min(Math.max(rate/goal*100,0),100);
-  document.getElementById('savings-content').innerHTML=`<div style="text-align:center;margin-bottom:16px;"><div style="font-size:42px;font-weight:800;letter-spacing:-2px;color:${rate>=goal?'var(--income)':rate>=goal/2?'var(--warn)':'var(--expense)'};">${rate.toFixed(1)}%</div><div style="font-size:12px;color:var(--fg-3);">savings rate</div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg-3);margin-bottom:6px;"><span>Progress to ${goal}% goal <button onclick="openSavingsGoalModal()" style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.7;padding:0 2px;vertical-align:middle;">✏️</button></span><span>${Math.min(rate,goal).toFixed(1)}% / ${goal}%</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${rate>=goal?'var(--income)':rate>=goal/2?'var(--warn)':'var(--expense)'};"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="background:var(--income-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--income);font-weight:700;text-transform:uppercase;">Saved</div><div style="font-size:18px;font-weight:800;color:var(--income);font-variant-numeric:tabular-nums;">${net>=0?fmt(net):'$0'}</div></div><div style="background:var(--expense-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--expense);font-weight:700;text-transform:uppercase;">Spent</div><div style="font-size:18px;font-weight:800;color:var(--expense);font-variant-numeric:tabular-nums;">${fmt(exp)}</div></div></div>`;
+  const inc=totalIncome(txns),exp=totalExpense(txns),net=inc-exp,rate=inc>0?(net/inc)*100:0,goal=getGoalPct(inc),pct=Math.min(Math.max(rate/goal*100,0),100);
+  document.getElementById('savings-content').innerHTML=`<div style="text-align:center;margin-bottom:16px;"><div style="font-size:42px;font-weight:800;letter-spacing:-2px;color:${rate>=goal?'var(--income)':rate>=goal/2?'var(--warn)':'var(--expense)'};">${rate.toFixed(1)}%</div><div style="font-size:12px;color:var(--fg-3);">savings rate</div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--fg-3);margin-bottom:6px;"><span>Progress to ${goal}% goal</span><span>${Math.min(rate,goal).toFixed(1)}% / ${goal}%</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${rate>=goal?'var(--income)':rate>=goal/2?'var(--warn)':'var(--expense)'};"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="background:var(--income-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--income);font-weight:700;text-transform:uppercase;">Saved</div><div style="font-size:18px;font-weight:800;color:var(--income);font-variant-numeric:tabular-nums;">${net>=0?fmt(net):'$0'}</div></div><div style="background:var(--expense-soft);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--expense);font-weight:700;text-transform:uppercase;">Spent</div><div style="font-size:18px;font-weight:800;color:var(--expense);font-variant-numeric:tabular-nums;">${fmt(exp)}</div></div></div>`;
 }
 
 // ── Normal distribution sample (Box-Muller) ──────────────────────────
@@ -1556,7 +1532,7 @@ function renderYearSummary() {
         <div class="year-stat"><div class="year-stat-label">Net Saved</div><div class="year-stat-val" style="color:${net>=0?'var(--income)':'var(--expense)'}">${net>=0?'+':''}${fmt(net)}</div></div>
       </div>
       <div class="year-stat-grid" style="margin-bottom:12px;">
-        <div class="year-stat"><div class="year-stat-label">Savings Rate</div><div class="year-stat-val" style="color:${rate>=(state.onboardSavingsGoal||20)?'var(--income)':rate>=(state.onboardSavingsGoal||20)/2?'var(--warn)':'var(--expense)'}">${rate}%</div></div>
+        <div class="year-stat"><div class="year-stat-label">Savings Rate</div><div class="year-stat-val" style="color:${(()=>{const g=getGoalPct(totalInc/12);return rate>=g?'var(--income)':rate>=g/2?'var(--warn)':'var(--expense)';})()}">${rate}%</div></div>
         ${topCat ? `<div class="year-stat" style="grid-column:span 2"><div class="year-stat-label">Biggest Expense Category</div><div class="year-stat-val" style="font-size:15px">${catEmoji(topCat[0])} ${topCat[0]} · ${fmt(topCat[1])}</div></div>` : ''}
       </div>
       ${bestMonth||worstMonth ? `<div class="year-best-worst">
@@ -2055,10 +2031,7 @@ function deleteTxn(id){if(!confirm('Delete this transaction?'))return;state.tran
 function openBudgetModal(){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}">${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value='';document.getElementById('budget-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
 function editBudgetItem(cat,limit){document.getElementById('budget-cat').innerHTML=state.categories.expense.map(c=>`<option value="${c.name}" ${c.name===cat?'selected':''}>${c.emoji} ${c.name}</option>`).join('');document.getElementById('budget-limit').value=limit;document.getElementById('budget-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
 function deleteBudget(cat){showConfirm(`Remove budget goal for ${cat}?`,()=>{delete state.budgets[cat];saveState();renderBudget();toast('Budget removed');});}
-function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;if(cat==='Savings'){const inc=totalIncome(txnsForMonth(state.currentMonth,state.currentYear));if(inc>0)state.onboardSavingsGoal=parseFloat((limit/inc*100).toFixed(1));}saveState();closeModal('budget-modal');renderAll();toast('Goal saved!');}
-function openSavingsGoalModal(){const txns=txnsForMonth(state.currentMonth,state.currentYear),inc=totalIncome(txns),goal=state.onboardSavingsGoal||20;document.getElementById('savings-goal-pct').value=goal;document.getElementById('savings-goal-amt').value=inc>0?Math.round(inc*goal/100):'';document.getElementById('savings-goal-modal').hidden=false;document.getElementById('chat-fab').hidden=true;}
-function syncSavingsGoal(changed){const txns=txnsForMonth(state.currentMonth,state.currentYear),inc=totalIncome(txns);if(!inc)return;if(changed==='pct'){const pct=parseFloat(document.getElementById('savings-goal-pct').value)||0;document.getElementById('savings-goal-amt').value=Math.round(inc*pct/100);}else{const amt=parseFloat(document.getElementById('savings-goal-amt').value)||0;document.getElementById('savings-goal-pct').value=(amt/inc*100).toFixed(1);}}
-function saveSavingsGoalEdit(){const pct=parseFloat(document.getElementById('savings-goal-pct').value),amt=parseFloat(document.getElementById('savings-goal-amt').value);if(!pct||pct<=0||pct>100){toast('Enter a % between 1 and 100');return;}state.onboardSavingsGoal=pct;if(amt>0)state.budgets['Savings']=Math.round(amt);saveState();closeModal('savings-goal-modal');renderAll();toast('Savings goal updated!');}
+function saveBudgetGoal(){const cat=document.getElementById('budget-cat').value,limit=parseFloat(document.getElementById('budget-limit').value);if(!limit||limit<=0){toast('Enter a valid limit');return;}state.budgets[cat]=limit;saveState();closeModal('budget-modal');renderAll();toast('Goal saved!');}
 function openCatModal(type){currentCatType=type;document.getElementById('cat-modal-title').textContent=`New ${type==='expense'?'Expense':'Income'} Category`;document.getElementById('cat-emoji').value='';document.getElementById('cat-name').value='';document.getElementById('cat-modal').hidden=false;}
 function saveCategory(){const emoji=document.getElementById('cat-emoji').value.trim()||'📦',name=document.getElementById('cat-name').value.trim();if(!name){toast('Enter a name');return;}state.categories[currentCatType].push({emoji,name});saveState();closeModal('cat-modal');renderCategories();toast('Category added!');}
 function deleteCategory(type,name){state.categories[type]=state.categories[type].filter(c=>c.name!==name);saveState();renderCategories();toast('Removed');}
